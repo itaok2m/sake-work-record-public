@@ -508,3 +508,161 @@ body.dark .danger-panel p{color:#ffd3d3;}
   .daily-row{grid-template-columns:1fr;}
   .record-usage-row{grid-template-columns:1fr;}
 }
+
+/* 20260612 原料処理一覧: 日別まとまり + 入力画面寄せの用途別カード。機能は変えず、一覧の見え方だけを整理。 */
+.daily-group-card{
+  border:1px solid var(--line-soft);
+  border-radius:16px;
+  background:var(--surface);
+  padding:13px 12px 14px;
+  box-shadow:none;
+}
+.daily-group-card:first-child{
+  border-top:1px solid var(--line-soft);
+  padding-top:13px;
+}
+.daily-group-head{
+  margin-bottom:10px;
+  padding-bottom:10px;
+  border-bottom:1px solid var(--line-soft);
+}
+.daily-record-list{
+  display:grid;
+  gap:12px;
+}
+.daily-record-block{
+  display:grid;
+  gap:10px;
+  padding:0;
+}
+.daily-record-block + .daily-record-block{
+  padding-top:12px;
+  border-top:1px dashed var(--line-soft);
+}
+.daily-record-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.daily-record-head h4{
+  margin:0 0 2px;
+  font-size:14px;
+  line-height:1.35;
+  color:var(--text);
+}
+.genryo-usage-card-list{
+  display:grid;
+  gap:9px;
+}
+.genryo-usage-card{
+  border:1px solid var(--line-soft);
+  border-left:4px solid var(--role-action-border);
+  border-radius:12px;
+  background:var(--surface-soft);
+  padding:10px 10px 11px;
+}
+.genryo-usage-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:8px;
+}
+.genryo-usage-head h4{
+  margin:0;
+  color:var(--text);
+  font-size:15px;
+  line-height:1.35;
+  font-weight:900;
+}
+.record-note-flag{
+  flex:0 0 auto;
+  border:1px solid var(--role-warning-border);
+  border-radius:999px;
+  background:var(--role-warning-bg);
+  color:var(--role-warning);
+  padding:2px 8px;
+  font-size:11px;
+  font-weight:900;
+  line-height:1.4;
+}
+.genryo-usage-main,
+.genryo-usage-sub{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:6px 9px;
+  font-size:13px;
+  line-height:1.45;
+}
+.genryo-usage-sub{
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  margin-top:7px;
+  padding-top:7px;
+  border-top:1px dashed var(--line-soft);
+}
+.genryo-usage-main span,
+.genryo-usage-sub span,
+.genryo-usage-note span{
+  min-width:0;
+  overflow-wrap:anywhere;
+  color:var(--text);
+}
+.genryo-usage-main b,
+.genryo-usage-sub b,
+.genryo-usage-note b{
+  display:block;
+  margin:0 0 1px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  line-height:1.35;
+}
+.genryo-usage-note{
+  display:grid;
+  gap:2px;
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px dashed var(--line-soft);
+  font-size:13px;
+  line-height:1.55;
+}
+.daily-steam-summary{
+  display:grid;
+  gap:7px;
+}
+body.theme-dark .daily-group-card,
+body.dark .daily-group-card,
+body.theme-dark .genryo-usage-card,
+body.dark .genryo-usage-card{
+  border-color:var(--line-soft);
+  background:var(--surface);
+}
+body.theme-dark .genryo-usage-card,
+body.dark .genryo-usage-card{
+  background:var(--surface-soft);
+  border-left-color:var(--role-action-border);
+}
+body.theme-dark .daily-group-head,
+body.dark .daily-group-head,
+body.theme-dark .daily-record-block + .daily-record-block,
+body.dark .daily-record-block + .daily-record-block,
+body.theme-dark .genryo-usage-sub,
+body.dark .genryo-usage-sub,
+body.theme-dark .genryo-usage-note,
+body.dark .genryo-usage-note{
+  border-color:var(--line-soft);
+}
+@media(max-width:900px){
+  .genryo-usage-main{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .genryo-usage-sub{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:640px){
+  .daily-group-card{padding:12px 10px 13px;}
+  .daily-record-head{display:grid;grid-template-columns:1fr;}
+  .daily-record-head .record-actions{justify-content:stretch;}
+}
+@media(max-width:420px){
+  .genryo-usage-main,
+  .genryo-usage-sub{grid-template-columns:1fr;}
+}
