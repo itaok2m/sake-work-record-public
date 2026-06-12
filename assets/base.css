@@ -509,35 +509,45 @@ body.dark .danger-panel p{color:#ffd3d3;}
   .record-usage-row{grid-template-columns:1fr;}
 }
 
-/* 20260612 原料処理一覧: 日別まとまり + 入力画面寄せの用途別カード。機能は変えず、一覧の見え方だけを整理。 */
-.daily-group-card{
-  border:1px solid var(--line-soft);
-  border-radius:16px;
-  background:var(--surface);
-  padding:13px 12px 14px;
-  box-shadow:none;
+/* 20260612 原料処理一覧: 履歴別カード。左青線は用途別ではなく、1回保存した原料処理記録に付ける。 */
+.daily-group-block{
+  display:grid;
+  gap:10px;
+  margin:0 0 14px;
 }
-.daily-group-card:first-child{
+.daily-group-block + .daily-group-block{
+  padding-top:14px;
   border-top:1px solid var(--line-soft);
-  padding-top:13px;
 }
 .daily-group-head{
-  margin-bottom:10px;
-  padding-bottom:10px;
-  border-bottom:1px solid var(--line-soft);
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+  padding:0 2px 2px;
+}
+.daily-group-head h3{
+  margin:0 0 2px;
+  color:var(--text);
+  font-size:17px;
+  line-height:1.35;
 }
 .daily-record-list{
   display:grid;
   gap:12px;
 }
-.daily-record-block{
+.genryo-history-card{
   display:grid;
   gap:10px;
-  padding:0;
+  border:1px solid var(--line-soft);
+  border-left:4px solid var(--role-action-border);
+  border-radius:14px;
+  background:var(--surface);
+  padding:12px 12px 13px;
 }
-.daily-record-block + .daily-record-block{
+.genryo-history-card:first-child{
+  border-top:1px solid var(--line-soft);
   padding-top:12px;
-  border-top:1px dashed var(--line-soft);
 }
 .daily-record-head{
   display:flex;
@@ -547,32 +557,59 @@ body.dark .danger-panel p{color:#ffd3d3;}
 }
 .daily-record-head h4{
   margin:0 0 2px;
-  font-size:14px;
+  font-size:15px;
   line-height:1.35;
   color:var(--text);
 }
-.genryo-usage-card-list{
+.genryo-history-summary{
   display:grid;
-  gap:9px;
-}
-.genryo-usage-card{
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:7px 9px;
   border:1px solid var(--line-soft);
-  border-left:4px solid var(--role-action-border);
-  border-radius:12px;
+  border-radius:11px;
   background:var(--surface-soft);
-  padding:10px 10px 11px;
+  padding:9px 10px;
+  font-size:13px;
+  line-height:1.45;
 }
-.genryo-usage-head{
+.genryo-history-summary span,
+.genryo-usage-line-main span,
+.genryo-usage-line-sub span,
+.genryo-usage-note span{
+  min-width:0;
+  overflow-wrap:anywhere;
+  color:var(--text);
+}
+.genryo-history-summary b,
+.genryo-usage-note b{
+  display:block;
+  margin:0 0 1px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  line-height:1.35;
+}
+.genryo-usage-line-list{
+  display:grid;
+  gap:7px;
+}
+.genryo-usage-line{
+  display:grid;
+  gap:6px;
+  border:1px solid var(--line-soft);
+  border-radius:10px;
+  background:var(--surface-soft);
+  padding:9px 10px;
+}
+.genryo-usage-line-head{
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:8px;
-  margin-bottom:8px;
 }
-.genryo-usage-head h4{
-  margin:0;
+.genryo-usage-line-head b{
   color:var(--text);
-  font-size:15px;
+  font-size:14px;
   line-height:1.35;
   font-weight:900;
 }
@@ -587,42 +624,25 @@ body.dark .danger-panel p{color:#ffd3d3;}
   font-weight:900;
   line-height:1.4;
 }
-.genryo-usage-main,
-.genryo-usage-sub{
+.genryo-usage-line-main,
+.genryo-usage-line-sub{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:6px 9px;
+  gap:5px 8px;
   font-size:13px;
   line-height:1.45;
 }
-.genryo-usage-sub{
+.genryo-usage-line-sub{
   grid-template-columns:repeat(5,minmax(0,1fr));
-  margin-top:7px;
-  padding-top:7px;
+  padding-top:6px;
   border-top:1px dashed var(--line-soft);
-}
-.genryo-usage-main span,
-.genryo-usage-sub span,
-.genryo-usage-note span{
-  min-width:0;
-  overflow-wrap:anywhere;
-  color:var(--text);
-}
-.genryo-usage-main b,
-.genryo-usage-sub b,
-.genryo-usage-note b{
-  display:block;
-  margin:0 0 1px;
   color:var(--muted);
-  font-size:11px;
-  font-weight:900;
-  line-height:1.35;
 }
 .genryo-usage-note{
   display:grid;
   gap:2px;
-  margin-top:8px;
-  padding-top:8px;
+  margin-top:2px;
+  padding-top:7px;
   border-top:1px dashed var(--line-soft);
   font-size:13px;
   line-height:1.55;
@@ -631,38 +651,45 @@ body.dark .danger-panel p{color:#ffd3d3;}
   display:grid;
   gap:7px;
 }
-body.theme-dark .daily-group-card,
-body.dark .daily-group-card,
-body.theme-dark .genryo-usage-card,
-body.dark .genryo-usage-card{
+body.theme-dark .daily-group-block + .daily-group-block,
+body.dark .daily-group-block + .daily-group-block,
+body.theme-dark .genryo-history-card,
+body.dark .genryo-history-card,
+body.theme-dark .genryo-history-summary,
+body.dark .genryo-history-summary,
+body.theme-dark .genryo-usage-line,
+body.dark .genryo-usage-line{
   border-color:var(--line-soft);
-  background:var(--surface);
 }
-body.theme-dark .genryo-usage-card,
-body.dark .genryo-usage-card{
-  background:var(--surface-soft);
+body.theme-dark .genryo-history-card,
+body.dark .genryo-history-card{
+  background:var(--surface);
   border-left-color:var(--role-action-border);
 }
-body.theme-dark .daily-group-head,
-body.dark .daily-group-head,
-body.theme-dark .daily-record-block + .daily-record-block,
-body.dark .daily-record-block + .daily-record-block,
-body.theme-dark .genryo-usage-sub,
-body.dark .genryo-usage-sub,
+body.theme-dark .genryo-history-summary,
+body.dark .genryo-history-summary,
+body.theme-dark .genryo-usage-line,
+body.dark .genryo-usage-line{
+  background:var(--surface-soft);
+}
+body.theme-dark .genryo-usage-line-sub,
+body.dark .genryo-usage-line-sub,
 body.theme-dark .genryo-usage-note,
 body.dark .genryo-usage-note{
   border-color:var(--line-soft);
 }
 @media(max-width:900px){
-  .genryo-usage-main{grid-template-columns:repeat(2,minmax(0,1fr));}
-  .genryo-usage-sub{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .genryo-history-summary{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .genryo-usage-line-main{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .genryo-usage-line-sub{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
 @media(max-width:640px){
-  .daily-group-card{padding:12px 10px 13px;}
+  .genryo-history-card{padding:11px 10px 12px;}
   .daily-record-head{display:grid;grid-template-columns:1fr;}
   .daily-record-head .record-actions{justify-content:stretch;}
 }
 @media(max-width:420px){
-  .genryo-usage-main,
-  .genryo-usage-sub{grid-template-columns:1fr;}
+  .genryo-history-summary,
+  .genryo-usage-line-main,
+  .genryo-usage-line-sub{grid-template-columns:1fr;}
 }
