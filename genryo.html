@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2f4257">
   <title>原料処理一覧</title>
-  <link rel="stylesheet" href="assets/base.css?v=20260612genryolistfix">
+  <link rel="stylesheet" href="assets/base.css?v=20260612genryolistui">
 </head>
 <body>
   <div class="tool-nav">
@@ -26,29 +26,38 @@
           <div class="field"><label>仕込号</label><input id="filter-shikomi" placeholder="仕込号" oninput="loadGenryoList()"></div>
           <div class="field"><label>キーワード</label><input id="filter-keyword" placeholder="米品種・備考など" oninput="loadGenryoList()"></div>
           <div class="field"><label>表示範囲</label><select id="filter-limit" onchange="loadGenryoList()"><option value="30">最新30件</option><option value="100">最新100件</option><option value="all">全件</option></select></div>
-          <div class="field"><label>表示形式</label><select id="filter-view-mode" onchange="loadGenryoList()"><option value="cards">保存記録カード</option><option value="detail">用途別明細</option><option value="daily">日付まとめ</option></select></div>
-          <div class="field"><label>同日表示</label><select id="filter-context-mode" onchange="loadGenryoList()"><option value="exact">一致分だけ</option><option value="wash">同じ洗米日も表示</option><option value="steam">同じ蒸し実施日も表示</option></select></div>
+          <div class="field"><label>検索結果の広げ方</label><select id="filter-context-mode" onchange="loadGenryoList()"><option value="exact">一致分だけ</option><option value="wash">同じ洗米日も表示</option><option value="steam">同じ蒸し実施日も表示</option></select></div>
         </div>
         <div class="actions split-actions filter-actions"><button class="btn" type="button" onclick="clearGenryoFilters()">条件クリア</button></div>
         <div id="list-status" class="list-status">0件</div>
       </section>
       <section class="input-block">
-        <h2>保存記録</h2>
-        <div class="actions split-actions">
-          <a class="btn primary" href="senmai.html">原料処理を追加</a>
-          <a class="btn" href="reports.html#genryo-output-trial">原料処理出力</a>
-          <button class="btn" type="button" onclick="exportGenryoJson()">全件JSON書き出し</button>
-          <button class="btn" type="button" onclick="document.getElementById('genryo-import-file').click()">JSONバックアップ読込</button>
-          <input id="genryo-import-file" type="file" accept="application/json,.json" hidden onchange="importGenryoJson(this.files&&this.files[0])">
+        <h2>用途別明細<small>1保存記録ごとに、用途別の米情報と蒸し記録を確認します。</small></h2>
+        <div class="genryo-action-panel">
+          <div class="genryo-action-row">
+            <a class="btn primary" href="senmai.html">原料処理を追加</a>
+            <a class="btn" href="reports.html#genryo-output-trial">表示条件で出力へ</a>
+          </div>
+          <details class="common-info-toggle genryo-backup-details" data-fold data-fold-closed="バックアップ入出力" data-fold-open="バックアップ入出力">
+            <summary><span>バックアップ入出力</span><b>開く ▼</b></summary>
+            <div class="genryo-backup-panel">
+              <p>JSONはツール復元用です。閲覧・保存用のExcel/印刷用HTMLとは役割を分けます。</p>
+              <div class="genryo-action-row">
+                <button class="btn" type="button" onclick="exportGenryoJson()">全件JSON書き出し</button>
+                <button class="btn" type="button" onclick="document.getElementById('genryo-import-file').click()">JSONバックアップ読込</button>
+              </div>
+              <input id="genryo-import-file" type="file" accept="application/json,.json" hidden onchange="importGenryoJson(this.files&&this.files[0])">
+            </div>
+          </details>
+          <details class="common-info-toggle danger-details" data-fold data-fold-closed="全件削除（危険操作）" data-fold-open="全件削除（危険操作）">
+            <summary><span>全件削除（危険操作）</span><b>開く ▼</b></summary>
+            <div class="danger-panel">
+              <p>原料処理の保存記録を全件削除します。必要な場合は、先に全件JSON書き出しでバックアップしてください。</p>
+              <button class="btn danger" type="button" onclick="deleteAllGenryoRecords()">原料処理保存記録を全件削除</button>
+            </div>
+          </details>
         </div>
         <div id="import-export-status" class="list-status"></div>
-        <details class="common-info-toggle danger-details">
-          <summary><b>危険操作: 原料処理保存記録の全件削除</b></summary>
-          <div class="danger-panel">
-            <p>原料処理の保存記録を全件削除します。必要な場合は、先に全件JSON書き出しでバックアップしてください。</p>
-            <button class="btn danger" type="button" onclick="deleteAllGenryoRecords()">原料処理 全件削除</button>
-          </div>
-        </details>
         <div id="genryo-record-list" class="record-list"></div>
       </section>
     </div>
@@ -73,7 +82,7 @@ function uniqueText(values,limit=4){const items=[...new Set(values.map(v=>String
 function recordLabel(record){return `${record.wash_date||'洗米日未入力'} → ${steamDate(record)||'蒸し実施日未入力'} / ${recordTotal(record)}`;}
 function recordActionsHtml(record){const id=encodeURIComponent(record.record_id||'');return `<div class="record-actions"><a class="btn compact primary" href="senmai.html?record_id=${id}">編集</a><button class="btn compact danger" type="button" onclick="deleteGenryoRecord('${id}')">削除</button></div>`;}
 function cardMiniHtml(card){return `<div class="record-mini-row"><b>${escapeHtml(card.usage_kind||'用途未選択')}</b><span>${escapeHtml(card.shikomi_no||'仕込号未入力')}</span><span>${escapeHtml(card.rice_variety||'品種未入力')}</span><span>${escapeHtml(card.rice_kg?card.rice_kg+'kg':'kg未入力')}</span></div>`;}
-function getFilters(){return {wash:document.getElementById('filter-wash-date')?.value||'',steam:document.getElementById('filter-steam-date')?.value||'',kind:document.getElementById('filter-kind')?.value||'',shikomi:(document.getElementById('filter-shikomi')?.value||'').trim(),keyword:(document.getElementById('filter-keyword')?.value||'').trim().toLowerCase(),limit:document.getElementById('filter-limit')?.value||'30',view:document.getElementById('filter-view-mode')?.value||'cards',context:document.getElementById('filter-context-mode')?.value||'exact'};}
+function getFilters(){return {wash:document.getElementById('filter-wash-date')?.value||'',steam:document.getElementById('filter-steam-date')?.value||'',kind:document.getElementById('filter-kind')?.value||'',shikomi:(document.getElementById('filter-shikomi')?.value||'').trim(),keyword:(document.getElementById('filter-keyword')?.value||'').trim().toLowerCase(),limit:document.getElementById('filter-limit')?.value||'30',view:'detail',context:document.getElementById('filter-context-mode')?.value||'exact'};}
 function hasAnyFilter(){const f=getFilters();return Boolean(f.wash||f.steam||f.kind||f.shikomi||f.keyword);}
 function cardMatchesFilters(card,record,filters){if(filters.kind && card.usage_kind!==filters.kind)return false;if(filters.shikomi && !String(card.shikomi_no||'').includes(filters.shikomi))return false;if(filters.keyword && !cardSearchText(card).includes(filters.keyword) && !steamSearchText(record).includes(filters.keyword) && !norm(record.wash_date+' '+steamDate(record)).includes(filters.keyword))return false;return true;}
 function recordMatches(record){const f=getFilters();if(f.wash && record.wash_date!==f.wash)return false;if(f.steam && steamDate(record)!==f.steam)return false;const cards=record.rice_cards||[];if(f.kind && !cards.some(card=>card.usage_kind===f.kind))return false;if(f.shikomi && !cards.some(card=>String(card.shikomi_no||'').includes(f.shikomi)))return false;if(f.keyword && !recordSearchText(record).includes(f.keyword))return false;return true;}
@@ -91,8 +100,8 @@ function recordCompactHtml(record,contextExpanded=false,index=0){const cards=car
 function dailyGroupKey(record){const f=getFilters();if(f.context==='steam'||f.steam)return steamDate(record)||'蒸し実施日未入力';return record.wash_date||'洗米日未入力';}
 function dailyGroupTitle(){const f=getFilters();return (f.context==='steam'||f.steam)?'蒸し実施日まとめ':'洗米日まとめ';}
 function dailySummaryHtml(records,contextExpanded=false){const groups=new Map();records.forEach(record=>{const key=dailyGroupKey(record);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(record);});const sorted=[...groups.entries()].sort((a,b)=>norm(b[0]).localeCompare(norm(a[0])));return sorted.map(([date,recs])=>{let total=0;let rows=[];recs.forEach(record=>{const cards=cardsForDisplay(record,contextExpanded);cards.forEach(card=>{total+=cardKgValue(card);rows.push(`<div class="daily-row"><span>${escapeHtml(record.wash_date||'-')} → ${escapeHtml(steamDate(record)||'-')}</span><b>${escapeHtml(card.usage_kind||'用途未選択')}</b><span>${escapeHtml(card.shikomi_no||'仕込号未入力')}</span><span>${escapeHtml(card.rice_variety||'品種未入力')}</span><span>${escapeHtml(card.rice_kg?card.rice_kg+'kg':'kg未入力')}</span><span class="daily-actions"><a class="inline-link" href="senmai.html?record_id=${encodeURIComponent(record.record_id)}">編集</a><button class="inline-danger" type="button" onclick="deleteGenryoRecord('${encodeURIComponent(record.record_id||'')}')">削除</button></span></div>`);});});return `<article class="record-card daily-group-card"><div class="record-head"><div><h3>${escapeHtml(date)} ${dailyGroupTitle()}</h3><span class="card-meta">${recs.length}記録 / ${rows.length}用途 / 表示分合計 ${total.toFixed(1)} kg</span></div></div><div class="daily-row-list">${rows.join('')||'<div class="empty-note">表示条件に合う用途明細はありません。</div>'}</div></article>`;}).join('');}
-function renderRecords(records,contextExpanded){const view=getFilters().view;if(view==='detail')return records.map(record=>recordHtml(record,contextExpanded)).join('');if(view==='daily')return dailySummaryHtml(records,contextExpanded);return records.map((record,index)=>recordCompactHtml(record,contextExpanded,index)).join('');}
-function loadGenryoList(){const out=document.getElementById('genryo-record-list');if(!out)return;const all=safeReadRecords().sort(recordSort);const matched=all.filter(recordMatches);const contextual=contextRecords(all,matched);const shown=limitedRecords(contextual.records);out.innerHTML=shown.length?renderRecords(shown,contextual.contextExpanded):'<div class="empty-note">保存記録はありません。</div>';const status=document.getElementById('list-status');if(status){const modeLabel={cards:'保存記録カード',detail:'用途別明細',daily:'日付まとめ'}[getFilters().view]||'保存記録カード';status.textContent=`${modeLabel} / ${contextual.contextLabel} / 表示 ${shown.length}件 / 該当 ${matched.length}件 / 対象 ${contextual.records.length}件 / 保存 ${all.length}件`;}if(window.__workRecordBindFolds)window.__workRecordBindFolds();}
+function renderRecords(records,contextExpanded){return records.map(record=>recordHtml(record,contextExpanded)).join('');}
+function loadGenryoList(){const out=document.getElementById('genryo-record-list');if(!out)return;const all=safeReadRecords().sort(recordSort);const matched=all.filter(recordMatches);const contextual=contextRecords(all,matched);const shown=limitedRecords(contextual.records);out.innerHTML=shown.length?renderRecords(shown,contextual.contextExpanded):'<div class="empty-note">保存記録はありません。</div>';const status=document.getElementById('list-status');if(status){status.textContent=`用途別明細 / ${contextual.contextLabel} / 表示 ${shown.length}件 / 該当 ${matched.length}件 / 対象 ${contextual.records.length}件 / 保存 ${all.length}件`;}if(window.__workRecordBindFolds)window.__workRecordBindFolds();}
 function exportGenryoJson(){const records=safeReadRecords();const payload={schema:GENRYO_EXPORT_SCHEMA,exported_at:new Date().toISOString(),records};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const ymd=new Date().toISOString().slice(0,10).replace(/-/g,'');const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`work_record_genryo_${ymd}.json`;document.body.appendChild(a);a.click();const href=a.href;a.remove();setTimeout(()=>URL.revokeObjectURL(href),1000);const status=document.getElementById('import-export-status');if(status)status.textContent=`表示条件に関係なく、全件 ${records.length}件をJSONバックアップとして書き出しました`;}
 function normalizeImportPayload(parsed){if(Array.isArray(parsed))return parsed;if(parsed&&Array.isArray(parsed.records))return parsed.records;return null;}
 function newer(a,b){return String(a.updated_at||a.created_at||'')>=String(b.updated_at||b.created_at||'');}
@@ -101,6 +110,6 @@ function deleteAllGenryoRecords(){const records=safeReadRecords();const count=re
 function importGenryoJson(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const parsed=JSON.parse(String(reader.result||''));const incoming=normalizeImportPayload(parsed);if(!incoming)throw new Error('records not found');const current=safeReadRecords();const map=new Map();current.forEach(record=>{if(record&&record.record_id)map.set(record.record_id,record);});let added=0,updated=0;incoming.forEach(record=>{if(!record||typeof record!=='object')return;if(!record.record_id)record.record_id='genryo_import_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);const old=map.get(record.record_id);if(!old){map.set(record.record_id,record);added++;}else if(newer(record,old)){map.set(record.record_id,record);updated++;}});const merged=[...map.values()].sort(recordSort);if(!safeWriteRecords(merged))throw new Error('localStorage write failed');const status=document.getElementById('import-export-status');if(status)status.textContent=`読込 ${added}件追加 / ${updated}件更新 / 保存 ${merged.length}件`;loadGenryoList();}catch(_err){alert('JSONを読み込めませんでした。');}finally{const input=document.getElementById('genryo-import-file');if(input)input.value='';}};reader.readAsText(file,'utf-8');}
 window.addEventListener('DOMContentLoaded',loadGenryoList);
 </script>
-  <script src="assets/ui.js?v=20260612genryolistio" defer></script>
+  <script src="assets/ui.js?v=20260612genryolistui" defer></script>
 </body>
 </html>

@@ -441,9 +441,14 @@ body.dark .record-usage-row{
   border-color:var(--line-soft);
 }
 
-/* 20260612 原料処理一覧: 記録カード・日付まとめ・同日文脈表示の試作。 */
+/* 20260612 原料処理一覧: 用途別明細を主表示にし、操作・バックアップ・危険操作を分離。 */
 .filter-actions{margin-top:10px;}
-.record-pick-card .record-detail-fold{margin-top:10px;}
+.genryo-action-panel{display:grid;gap:10px;margin-top:10px;}
+.genryo-action-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.genryo-action-row .btn{flex:0 1 auto;}
+.genryo-backup-details{margin:0;background:var(--role-read-bg);border-color:var(--line-soft);}
+.genryo-backup-panel{display:grid;gap:10px;padding:10px 12px 12px;}
+.genryo-backup-panel p{margin:0;color:var(--role-read-text);font-size:12.5px;font-weight:700;line-height:1.7;}
 .record-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
 .record-mini-list{display:grid;gap:6px;margin-top:10px;}
 .record-mini-row{display:grid;grid-template-columns:1.1fr 1fr 1.4fr .8fr;gap:8px;padding:7px 0;border-top:1px dashed var(--line-soft);align-items:center;}
@@ -451,77 +456,55 @@ body.dark .record-usage-row{
 .record-mini-row b{color:var(--text);}
 .daily-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .inline-danger{border:0;background:transparent;color:var(--role-danger);font-weight:900;text-decoration:underline;text-underline-offset:2px;padding:0;cursor:pointer;font:inherit;}
-body.theme-dark .record-mini-row,body.dark .record-mini-row{border-color:var(--line-soft);}
-body.theme-dark .inline-danger,body.dark .inline-danger{color:#ffc6c6;}
-@media(max-width:640px){.record-actions{justify-content:stretch;}.record-actions .btn{flex:1 1 auto;}.record-mini-row{grid-template-columns:1fr 1fr;}.daily-actions{grid-column:1/-1;}.inline-danger{display:inline-flex;min-height:32px;align-items:center;}}
-.record-summary-grid{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:7px 10px;
-  margin-top:8px;
-  font-size:13px;
-  line-height:1.45;
-}
-.record-summary-grid span{
-  min-width:0;
-  overflow-wrap:anywhere;
-  color:var(--text);
-}
-.record-summary-grid b{
-  display:inline-block;
-  margin-right:6px;
-  color:var(--muted);
-}
-.daily-row-list{
-  display:grid;
-  gap:0;
-}
-.daily-row{
-  display:grid;
-  grid-template-columns:1.55fr .8fr .8fr 1fr .72fr auto;
-  gap:6px 9px;
-  border-top:1px dashed var(--line-soft);
-  padding:8px 0 0;
-  font-size:13px;
-  line-height:1.45;
-  overflow-wrap:anywhere;
-}
+.record-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px 10px;margin-top:8px;font-size:13px;line-height:1.45;}
+.record-summary-grid span{min-width:0;overflow-wrap:anywhere;color:var(--text);}
+.record-summary-grid b{display:inline-block;margin-right:6px;color:var(--muted);}
+.daily-row-list{display:grid;gap:0;}
+.daily-row{display:grid;grid-template-columns:1.55fr .8fr .8fr 1fr .72fr auto;gap:6px 9px;border-top:1px dashed var(--line-soft);padding:8px 0 0;font-size:13px;line-height:1.45;overflow-wrap:anywhere;}
 .daily-row:first-child{border-top:0;padding-top:0;}
 .daily-row b{color:var(--text);}
+.record-usage-row{border:1px solid var(--line-soft);border-radius:12px;background:var(--surface-soft);padding:9px 10px;}
+.record-usage-row:first-child{border-top:1px solid var(--line-soft);padding-top:9px;}
+.record-row-list{gap:8px;}
+.steam-record-row{border:1px solid var(--line-soft);border-radius:12px;background:var(--role-read-bg);padding:8px 10px;color:var(--role-read-text);}
+.record-steam-details{border-color:var(--line-soft);background:var(--role-read-bg);}
+.record-steam-list{display:grid;gap:6px;padding:8px 10px 10px;}
+.record-steam-list .steam-record-row{border-style:dashed;background:transparent;}
+.danger-details{margin:0;border-color:var(--role-danger-border);background:var(--role-danger-bg);}
+.danger-details summary{color:var(--role-danger);}
+.danger-panel{display:grid;gap:10px;padding:10px 12px 12px;}
+.danger-panel p{margin:0;color:var(--role-danger);font-weight:700;line-height:1.6;}
+body.theme-dark .record-mini-row,
+body.dark .record-mini-row,
 body.theme-dark .daily-row,
 body.dark .daily-row{border-color:var(--line-soft);}
+body.theme-dark .record-usage-row,
+body.dark .record-usage-row{border-color:var(--line-soft);background:var(--surface-soft);}
+body.theme-dark .steam-record-row,
+body.dark .steam-record-row,
+body.theme-dark .genryo-backup-details,
+body.dark .genryo-backup-details{border-color:var(--line-soft);background:var(--role-read-bg);}
+body.theme-dark .inline-danger,
+body.dark .inline-danger{color:#ffc6c6;}
+body.theme-dark .danger-details,
+body.dark .danger-details{border-color:var(--role-danger-border);background:var(--role-danger-bg);}
+body.theme-dark .danger-panel p,
+body.dark .danger-panel p{color:#ffd3d3;}
 @media(max-width:900px){
-  .record-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
-.record-mini-list{display:grid;gap:6px;margin-top:10px;}
-.record-mini-row{display:grid;grid-template-columns:1.1fr 1fr 1.4fr .8fr;gap:8px;padding:7px 0;border-top:1px dashed var(--line-soft);align-items:center;}
-.record-mini-row:first-child{border-top:0;}
-.record-mini-row b{color:var(--text);}
-.daily-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.inline-danger{border:0;background:transparent;color:var(--role-danger);font-weight:900;text-decoration:underline;text-underline-offset:2px;padding:0;cursor:pointer;font:inherit;}
-body.theme-dark .record-mini-row,body.dark .record-mini-row{border-color:var(--line-soft);}
-body.theme-dark .inline-danger,body.dark .inline-danger{color:#ffc6c6;}
-@media(max-width:640px){.record-actions{justify-content:stretch;}.record-actions .btn{flex:1 1 auto;}.record-mini-row{grid-template-columns:1fr 1fr;}.daily-actions{grid-column:1/-1;}.inline-danger{display:inline-flex;min-height:32px;align-items:center;}}
-.record-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .record-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
   .daily-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .record-usage-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:640px){
+  .genryo-action-row .btn{flex:1 1 auto;}
+  .record-actions{justify-content:stretch;}
+  .record-actions .btn{flex:1 1 auto;}
+  .record-mini-row{grid-template-columns:1fr 1fr;}
+  .daily-actions{grid-column:1/-1;}
+  .inline-danger{display:inline-flex;min-height:32px;align-items:center;}
 }
 @media(max-width:520px){
-  .record-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
-.record-mini-list{display:grid;gap:6px;margin-top:10px;}
-.record-mini-row{display:grid;grid-template-columns:1.1fr 1fr 1.4fr .8fr;gap:8px;padding:7px 0;border-top:1px dashed var(--line-soft);align-items:center;}
-.record-mini-row:first-child{border-top:0;}
-.record-mini-row b{color:var(--text);}
-.daily-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.inline-danger{border:0;background:transparent;color:var(--role-danger);font-weight:900;text-decoration:underline;text-underline-offset:2px;padding:0;cursor:pointer;font:inherit;}
-body.theme-dark .record-mini-row,body.dark .record-mini-row{border-color:var(--line-soft);}
-body.theme-dark .inline-danger,body.dark .inline-danger{color:#ffc6c6;}
-@media(max-width:640px){.record-actions{justify-content:stretch;}.record-actions .btn{flex:1 1 auto;}.record-mini-row{grid-template-columns:1fr 1fr;}.daily-actions{grid-column:1/-1;}.inline-danger{display:inline-flex;min-height:32px;align-items:center;}}
-.record-summary-grid{grid-template-columns:1fr;}
+  .record-summary-grid{grid-template-columns:1fr;}
   .daily-row{grid-template-columns:1fr;}
+  .record-usage-row{grid-template-columns:1fr;}
 }
-/* 20260612 genryo all-delete danger operation */
-.danger-details{margin-top:10px;border-color:var(--role-danger-border);background:var(--role-danger-bg);}
-.danger-details summary{color:var(--role-danger);}
-.danger-panel{display:grid;gap:10px;padding-top:10px;}
-.danger-panel p{margin:0;color:var(--role-danger);font-weight:700;line-height:1.6;}
-body.theme-dark .danger-details,body.dark .danger-details{border-color:var(--role-danger-border);background:var(--role-danger-bg);}
-body.theme-dark .danger-panel p,body.dark .danger-panel p{color:#ffd3d3;}
