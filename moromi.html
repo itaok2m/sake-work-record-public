@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2f4257">
+  <title>醪経過</title>
+  <link rel="stylesheet" href="assets/base.css?v=20260612genryolistio">
+</head>
+<body>
+  <div class="tool-nav">
+    <a class="back-btn" href="flowchart.html">← 工程別記録へ戻る</a>
+    <div class="tool-nav-place"><span class="tool-nav-title">醪経過</span></div>
+  </div>
+  <main class="tool-body">
+    <section class="screen-lead">
+      <h1>醪経過</h1>
+    </section>
+    <div class="wrapper wide">
+      <section class="input-block">
+        <h2>1. 醪の基本情報</h2>
+        <div class="form-grid">
+          <div class="field"><label>BY</label><select><option>R7BY</option><option>R8BY</option></select></div>
+          <div class="field"><label>仕込号数</label><input placeholder="例：12号"></div>
+          <div class="field"><label>仕込種類</label><input placeholder="例：純米吟醸"></div>
+          <div class="field"><label>記号・順号</label><input placeholder="例：イ-3"></div>
+          <div class="field"><label>容器 / タンク</label><input placeholder="例：T23"></div>
+          <div class="field"><label>区分</label><input placeholder="例：酒質区分"></div>
+          <div class="field"><label>酵母</label><input placeholder="酵母名"></div>
+          <div class="field"><label>仕込開始日</label><input type="date"></div>
+        </div>
+      </section>
+
+      <section class="input-block">
+        <h2>2. 仕込操作</h2>
+        <div class="rice-card-list">
+          <article class="rice-card">
+            <div class="rice-card-head"><div><h3>仕込操作カード</h3><span class="card-meta">水麹、仕込、荒櫂、踊、仲、留など</span></div></div>
+            <div class="rice-main-grid">
+              <div class="field compact-field"><label>日順</label><input inputmode="numeric" placeholder="添 / 踊 / 1 / 2"></div>
+              <div class="field compact-field"><label>月日</label><input type="date"></div>
+              <div class="field compact-field"><label>時刻</label><input type="time" step="1"></div>
+              <div class="field compact-field"><label>工程区分</label><select><option>添</option><option>踊</option><option>仲</option><option>留</option><option>醪経過</option><option>四段</option><option>追水</option><option>その他</option></select></div>
+              <div class="field compact-field"><label>操作</label><select><option>水麹前</option><option>水麹</option><option>仕込</option><option>荒櫂</option><option>検温</option><option>分け</option><option>追水</option><option>その他</option></select></div>
+              <div class="field compact-field"><label>追水量 L</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>状貌</label><input placeholder="泡、香り、溶け、締まりなど"></div>
+              <div class="field compact-field memo-field"><label>備考</label><textarea placeholder="操作判断、異常、次回確認事項など"></textarea></div>
+            </div>
+          </article>
+        </div>
+        <div class="actions"><button class="btn primary" type="button">仕込操作カードを追加（仮）</button></div>
+      </section>
+
+      <section class="input-block">
+        <h2>3. 日順経過</h2>
+        <div class="rice-card-list">
+          <article class="rice-card">
+            <div class="rice-card-head"><div><h3>日順経過カード</h3><span class="card-meta">1日1カード、必要なら同日複数回</span></div></div>
+            <div class="rice-main-grid">
+              <div class="field compact-field"><label>日順</label><input inputmode="numeric" placeholder="1"></div>
+              <div class="field compact-field"><label>月日</label><input type="date"></div>
+              <div class="field compact-field"><label>時刻</label><input type="time" step="1"></div>
+              <div class="field compact-field"><label>室温 ℃</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>品温1 ℃</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>品温2 ℃</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>ボーメ</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>日本酒度</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>アルコール %</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>酸度 ml</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>アミノ酸度 ml</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>グルコース g/100ml</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>BMD</label><input inputmode="decimal" placeholder="自動化候補"></div>
+              <div class="field compact-field"><label>深さ mm</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>醪数量 L（実測）</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>醪数量 L（理論）</label><input inputmode="decimal" placeholder="自動化候補"></div>
+              <div class="field compact-field memo-field"><label>経過メモ</label><textarea placeholder="泡、香り、分析所見、追水予定、温度操作など"></textarea></div>
+            </div>
+          </article>
+        </div>
+        <div class="actions"><button class="btn primary" type="button">日順カードを追加（仮）</button><button class="btn" type="button">下書き保存（仮）</button></div>
+      </section>
+
+      <section class="input-block">
+        <h2>4. 計算・読み取り欄</h2>
+        <div class="rice-summary-grid">
+          <div class="summary-card"><span>エキス分</span><b class="auto-readout">未計算</b></div>
+          <div class="summary-card"><span>原エキス分</span><b class="auto-readout">未計算</b></div>
+          <div class="summary-card"><span>溶解度</span><b class="auto-readout">未接続</b></div>
+          <div class="summary-card"><span>発酵/溶解比</span><b class="auto-readout">未接続</b></div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="assets/ui.js?v=20260612genryolistio" defer></script>
+</body>
+</html>

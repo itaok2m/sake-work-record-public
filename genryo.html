@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2f4257">
+  <title>原料処理一覧</title>
+  <link rel="stylesheet" href="assets/base.css?v=20260612genryolistfix">
+</head>
+<body>
+  <div class="tool-nav">
+    <a class="back-btn" href="flowchart.html">← 工程別記録へ戻る</a>
+    <div class="tool-nav-place"><span class="tool-nav-title">原料処理一覧</span></div>
+  </div>
+  <main class="tool-body">
+    <section class="screen-lead">
+      <h1>原料処理一覧</h1>
+    </section>
+    <div class="wrapper wide">
+      <section class="input-block">
+        <h2>表示条件</h2>
+        <div class="form-grid">
+          <div class="field"><label>洗米日</label><input id="filter-wash-date" type="date" oninput="loadGenryoList()"></div>
+          <div class="field"><label>蒸し実施日</label><input id="filter-steam-date" type="date" oninput="loadGenryoList()"></div>
+          <div class="field"><label>用途分類</label><select id="filter-kind" onchange="loadGenryoList()"><option value="">すべて</option><option>酛麹</option><option>酛掛</option><option>添麹</option><option>仲麹</option><option>留麹</option><option>添掛</option><option>仲掛</option><option>留掛</option><option>四段</option><option>その他</option></select></div>
+          <div class="field"><label>仕込号</label><input id="filter-shikomi" placeholder="仕込号" oninput="loadGenryoList()"></div>
+          <div class="field"><label>キーワード</label><input id="filter-keyword" placeholder="米品種・備考など" oninput="loadGenryoList()"></div>
+          <div class="field"><label>表示範囲</label><select id="filter-limit" onchange="loadGenryoList()"><option value="30">最新30件</option><option value="100">最新100件</option><option value="all">全件</option></select></div>
+          <div class="field"><label>表示形式</label><select id="filter-view-mode" onchange="loadGenryoList()"><option value="cards">保存記録カード</option><option value="detail">用途別明細</option><option value="daily">日付まとめ</option></select></div>
+          <div class="field"><label>同日表示</label><select id="filter-context-mode" onchange="loadGenryoList()"><option value="exact">一致分だけ</option><option value="wash">同じ洗米日も表示</option><option value="steam">同じ蒸し実施日も表示</option></select></div>
+        </div>
+        <div class="actions split-actions filter-actions"><button class="btn" type="button" onclick="clearGenryoFilters()">条件クリア</button></div>
+        <div id="list-status" class="list-status">0件</div>
+      </section>
+      <section class="input-block">
+        <h2>保存記録</h2>
+        <div class="actions split-actions">
+          <a class="btn primary" href="senmai.html">原料処理を追加</a>
+          <a class="btn" href="reports.html#genryo-output-trial">原料処理出力</a>
+          <button class="btn" type="button" onclick="exportGenryoJson()">全件JSON書き出し</button>
+          <button class="btn" type="button" onclick="document.getElementById('genryo-import-file').click()">JSONバックアップ読込</button>
+          <input id="genryo-import-file" type="file" accept="application/json,.json" hidden onchange="importGenryoJson(this.files&&this.files[0])">
+        </div>
+        <div id="import-export-status" class="list-status"></div>
+        <details class="common-info-toggle danger-details">
+          <summary><b>危険操作: 原料処理保存記録の全件削除</b></summary>
+          <div class="danger-panel">
+            <p>原料処理の保存記録を全件削除します。必要な場合は、先に全件JSON書き出しでバックアップしてください。</p>
+            <button class="btn danger" type="button" onclick="deleteAllGenryoRecords()">原料処理 全件削除</button>
+          </div>
+        </details>
+        <div id="genryo-record-list" class="record-list"></div>
+      </section>
+    </div>
+  </main>
+<script>
+const GENRYO_STORAGE_KEY='workRecordGenryoRecordsV1';
+const GENRYO_EXPORT_SCHEMA='workRecordGenryoRecordsV1';
+function safeReadRecords(){try{const raw=localStorage.getItem(GENRYO_STORAGE_KEY);const parsed=raw?JSON.parse(raw):[];return Array.isArray(parsed)?parsed:[];}catch(_err){return [];}}
+function safeWriteRecords(records){try{localStorage.setItem(GENRYO_STORAGE_KEY,JSON.stringify(records));return true;}catch(_err){return false;}}
+function escapeHtml(value){return String(value||'').replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function compactDate(value){return value || '日付未入力';}
+function norm(value){return String(value||'').toLowerCase();}
+function compactTime(value){return value || '-';}
+function recordSort(a,b){return norm(b.updated_at||b.created_at||b.wash_date).localeCompare(norm(a.updated_at||a.created_at||a.wash_date));}
+function cardSearchText(card){return [card.usage_kind,card.shikomi_no,card.rice_variety,card.rice_polish,card.rice_kg,card.wash_start,card.soak_start,card.soak_end,card.soak_duration,card.water_temp,card.kenjo_order,card.note].map(norm).join(' ');}
+function steamSearchText(record){const s=record.steam||{};const segs=Array.isArray(s.segments)?s.segments:[];return [s.actual_date,s.steam_in_time,s.boil_time,s.steam_through_time,s.steam_end_time,s.steaming_time_min,s.note,segs.map(seg=>[seg.label,seg.minutes,seg.raw_steam_pressure,seg.dry_steam_pressure].join(' ')).join(' ')].map(norm).join(' ');}
+function recordSearchText(record){return [record.wash_date,steamDate(record),steamSearchText(record),(record.rice_cards||[]).map(cardSearchText).join(' ')].map(norm).join(' ');}
+function recordTotal(record){let total=0;(record.rice_cards||[]).forEach(card=>{const v=parseFloat(String(card.rice_kg||'').replace(',','.'));if(!Number.isNaN(v))total+=v;});return total.toFixed(1)+' kg';}
+function steamDate(record){return record?.steam?.actual_date||'';}
+function cardKgValue(card){const v=parseFloat(String(card.rice_kg||'').replace(',','.'));return Number.isNaN(v)?0:v;}
+function uniqueText(values,limit=4){const items=[...new Set(values.map(v=>String(v||'').trim()).filter(Boolean))];if(!items.length)return '-';return items.length>limit?items.slice(0,limit).join(' / ')+` ほか${items.length-limit}`:items.join(' / ');}
+function recordLabel(record){return `${record.wash_date||'洗米日未入力'} → ${steamDate(record)||'蒸し実施日未入力'} / ${recordTotal(record)}`;}
+function recordActionsHtml(record){const id=encodeURIComponent(record.record_id||'');return `<div class="record-actions"><a class="btn compact primary" href="senmai.html?record_id=${id}">編集</a><button class="btn compact danger" type="button" onclick="deleteGenryoRecord('${id}')">削除</button></div>`;}
+function cardMiniHtml(card){return `<div class="record-mini-row"><b>${escapeHtml(card.usage_kind||'用途未選択')}</b><span>${escapeHtml(card.shikomi_no||'仕込号未入力')}</span><span>${escapeHtml(card.rice_variety||'品種未入力')}</span><span>${escapeHtml(card.rice_kg?card.rice_kg+'kg':'kg未入力')}</span></div>`;}
+function getFilters(){return {wash:document.getElementById('filter-wash-date')?.value||'',steam:document.getElementById('filter-steam-date')?.value||'',kind:document.getElementById('filter-kind')?.value||'',shikomi:(document.getElementById('filter-shikomi')?.value||'').trim(),keyword:(document.getElementById('filter-keyword')?.value||'').trim().toLowerCase(),limit:document.getElementById('filter-limit')?.value||'30',view:document.getElementById('filter-view-mode')?.value||'cards',context:document.getElementById('filter-context-mode')?.value||'exact'};}
+function hasAnyFilter(){const f=getFilters();return Boolean(f.wash||f.steam||f.kind||f.shikomi||f.keyword);}
+function cardMatchesFilters(card,record,filters){if(filters.kind && card.usage_kind!==filters.kind)return false;if(filters.shikomi && !String(card.shikomi_no||'').includes(filters.shikomi))return false;if(filters.keyword && !cardSearchText(card).includes(filters.keyword) && !steamSearchText(record).includes(filters.keyword) && !norm(record.wash_date+' '+steamDate(record)).includes(filters.keyword))return false;return true;}
+function recordMatches(record){const f=getFilters();if(f.wash && record.wash_date!==f.wash)return false;if(f.steam && steamDate(record)!==f.steam)return false;const cards=record.rice_cards||[];if(f.kind && !cards.some(card=>card.usage_kind===f.kind))return false;if(f.shikomi && !cards.some(card=>String(card.shikomi_no||'').includes(f.shikomi)))return false;if(f.keyword && !recordSearchText(record).includes(f.keyword))return false;return true;}
+function filteredCards(record,forceAll=false){const cards=record.rice_cards||[];if(forceAll||!hasAnyFilter())return cards;const f=getFilters();return cards.filter(card=>cardMatchesFilters(card,record,f));}
+function cardsForDisplay(record,contextExpanded){return filteredCards(record,Boolean(contextExpanded));}
+function clearGenryoFilters(){['filter-wash-date','filter-steam-date','filter-kind','filter-shikomi','filter-keyword'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const ctx=document.getElementById('filter-context-mode');if(ctx)ctx.value='exact';loadGenryoList();}
+function contextRecords(all,matched){const f=getFilters();if(!hasAnyFilter()||f.context==='exact')return {records:matched,contextExpanded:false,contextLabel:'一致分だけ'};if(f.context==='wash'){const dates=new Set(matched.map(record=>record.wash_date).filter(Boolean));return {records:all.filter(record=>dates.has(record.wash_date)),contextExpanded:true,contextLabel:'同じ洗米日も表示'};}if(f.context==='steam'){const dates=new Set(matched.map(record=>steamDate(record)).filter(Boolean));return {records:all.filter(record=>dates.has(steamDate(record))),contextExpanded:true,contextLabel:'同じ蒸し実施日も表示'};}return {records:matched,contextExpanded:false,contextLabel:'一致分だけ'};}
+function limitedRecords(records){const limitValue=getFilters().limit;if(limitValue==='all')return records;return records.slice(0,Number(limitValue)||30);}
+function cardRowHtml(card){return `<div class="record-usage-row"><b>${escapeHtml(card.usage_kind||'用途未選択')}</b><span>${escapeHtml(card.shikomi_no||'仕込号未入力')}</span><span>${escapeHtml(card.rice_variety||'品種未入力')}</span><span>${escapeHtml(card.rice_polish?card.rice_polish+'%':'精米未入力')}</span><span>${escapeHtml(card.rice_kg?card.rice_kg+'kg':'kg未入力')}</span><span>洗米 ${escapeHtml(compactTime(card.wash_start))}</span><span>浸漬 ${escapeHtml(compactTime(card.soak_start))}→${escapeHtml(compactTime(card.soak_end))}</span><span>${escapeHtml(card.soak_duration&&card.soak_duration!=='自動'?card.soak_duration:'時間未計算')}</span><span>${escapeHtml(card.water_temp?card.water_temp+'℃':'水温未入力')}</span><span>検蒸順 ${escapeHtml(card.kenjo_order||'-')}</span>${card.note?`<span class="record-note">備考 ${escapeHtml(card.note)}</span>`:''}</div>`;}
+function steamSegmentLine(segment){const parts=[segment.label||'区間未入力'];if(segment.minutes)parts.push(segment.minutes+'分');parts.push('生蒸気 '+(segment.raw_steam_pressure||'-')+' MPa');parts.push('乾燥蒸気 '+(segment.dry_steam_pressure||'-')+' MPa');return parts.map(escapeHtml).join(' / ');}
+function steamSummaryHtml(record){const s=record.steam||{};const head=[s.actual_date?'蒸し実施日 '+s.actual_date:'蒸し実施日未入力',s.steam_through_time?'蒸気抜け '+s.steam_through_time:'蒸気抜け未入力',s.steam_end_time?'蒸し終了 '+s.steam_end_time:'蒸し終了未入力',s.steaming_time_min?'蒸し時間 '+s.steaming_time_min+'分':'蒸し時間未計算'];const segs=Array.isArray(s.segments)?s.segments.filter(seg=>seg&&(seg.minutes||seg.raw_steam_pressure||seg.dry_steam_pressure)):[];const rows=[`<div class="record-row steam-record-row">${head.map(escapeHtml).join(' / ')}</div>`];if(segs.length){rows.push(`<details class="card-details record-steam-details" data-fold data-fold-closed="蒸気圧を見る" data-fold-open="蒸気圧を閉じる"><summary><span>蒸気圧を見る</span><b>開く ▼</b></summary><div class="record-steam-list">${segs.map(seg=>`<div class="record-row steam-record-row">${steamSegmentLine(seg)}</div>`).join('')}</div></details>`);}if(s.note){rows.push(`<div class="record-row steam-record-row"><b>メモ</b><span>${escapeHtml(s.note)}</span></div>`);}return rows.join('');}
+function recordMetaHtml(record,cards){const updated=record.updated_at?new Date(record.updated_at).toLocaleString('ja-JP'):'';return `${cards.length}表示 / 全${(record.rice_cards||[]).length}用途 / ${escapeHtml(recordTotal(record))} / 更新 ${escapeHtml(updated||'未記録')}`;}
+function recordHtml(record,contextExpanded=false){const cards=cardsForDisplay(record,contextExpanded);return `<article class="record-card"><div class="record-head"><div><h3>${escapeHtml(compactDate(record.wash_date))} → ${escapeHtml(compactDate(steamDate(record)))}</h3><span class="card-meta">${recordMetaHtml(record,cards)}</span></div>${recordActionsHtml(record)}</div><div class="record-row-list">${cards.length?cards.map(cardRowHtml).join(''):'<div class="empty-note">表示条件に合う用途明細はありません。</div>'}${steamSummaryHtml(record)}</div></article>`;}
+function recordCompactHtml(record,contextExpanded=false,index=0){const cards=cardsForDisplay(record,contextExpanded);const allCards=record.rice_cards||[];const s=record.steam||{};const purposes=uniqueText(cards.map(card=>card.usage_kind));const shikomi=uniqueText(cards.map(card=>card.shikomi_no));const rice=uniqueText(cards.map(card=>card.rice_variety),3);const hasNote=Boolean(allCards.some(card=>card.note)||s.note);const pressure=(Array.isArray(s.segments)&&s.segments.some(seg=>seg&&(seg.minutes||seg.raw_steam_pressure||seg.dry_steam_pressure)))?'蒸気圧あり':'蒸気圧なし';return `<article class="record-card record-pick-card"><div class="record-head"><div><h3>${escapeHtml(compactDate(record.wash_date))} → ${escapeHtml(compactDate(steamDate(record)))}</h3><span class="card-meta">${escapeHtml(recordMetaHtml(record,cards))}</span></div>${recordActionsHtml(record)}</div><div class="record-summary-grid"><span><b>仕込</b>${escapeHtml(shikomi)}</span><span><b>用途</b>${escapeHtml(purposes)}</span><span><b>米品種</b>${escapeHtml(rice)}</span><span><b>白米合計</b>${escapeHtml(recordTotal(record))}</span><span><b>蒸し時間</b>${escapeHtml(s.steaming_time_min?s.steaming_time_min+'分':'未計算')}</span><span><b>補足</b>${escapeHtml([pressure,hasNote?'備考あり':'備考なし'].join(' / '))}</span></div><div class="record-mini-list">${cards.length?cards.slice(0,6).map(cardMiniHtml).join(''):'<div class="empty-note">表示条件に合う用途明細はありません。</div>'}${cards.length>6?`<div class="empty-note">ほか ${cards.length-6} 用途</div>`:''}</div></article>`;}
+function dailyGroupKey(record){const f=getFilters();if(f.context==='steam'||f.steam)return steamDate(record)||'蒸し実施日未入力';return record.wash_date||'洗米日未入力';}
+function dailyGroupTitle(){const f=getFilters();return (f.context==='steam'||f.steam)?'蒸し実施日まとめ':'洗米日まとめ';}
+function dailySummaryHtml(records,contextExpanded=false){const groups=new Map();records.forEach(record=>{const key=dailyGroupKey(record);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(record);});const sorted=[...groups.entries()].sort((a,b)=>norm(b[0]).localeCompare(norm(a[0])));return sorted.map(([date,recs])=>{let total=0;let rows=[];recs.forEach(record=>{const cards=cardsForDisplay(record,contextExpanded);cards.forEach(card=>{total+=cardKgValue(card);rows.push(`<div class="daily-row"><span>${escapeHtml(record.wash_date||'-')} → ${escapeHtml(steamDate(record)||'-')}</span><b>${escapeHtml(card.usage_kind||'用途未選択')}</b><span>${escapeHtml(card.shikomi_no||'仕込号未入力')}</span><span>${escapeHtml(card.rice_variety||'品種未入力')}</span><span>${escapeHtml(card.rice_kg?card.rice_kg+'kg':'kg未入力')}</span><span class="daily-actions"><a class="inline-link" href="senmai.html?record_id=${encodeURIComponent(record.record_id)}">編集</a><button class="inline-danger" type="button" onclick="deleteGenryoRecord('${encodeURIComponent(record.record_id||'')}')">削除</button></span></div>`);});});return `<article class="record-card daily-group-card"><div class="record-head"><div><h3>${escapeHtml(date)} ${dailyGroupTitle()}</h3><span class="card-meta">${recs.length}記録 / ${rows.length}用途 / 表示分合計 ${total.toFixed(1)} kg</span></div></div><div class="daily-row-list">${rows.join('')||'<div class="empty-note">表示条件に合う用途明細はありません。</div>'}</div></article>`;}).join('');}
+function renderRecords(records,contextExpanded){const view=getFilters().view;if(view==='detail')return records.map(record=>recordHtml(record,contextExpanded)).join('');if(view==='daily')return dailySummaryHtml(records,contextExpanded);return records.map((record,index)=>recordCompactHtml(record,contextExpanded,index)).join('');}
+function loadGenryoList(){const out=document.getElementById('genryo-record-list');if(!out)return;const all=safeReadRecords().sort(recordSort);const matched=all.filter(recordMatches);const contextual=contextRecords(all,matched);const shown=limitedRecords(contextual.records);out.innerHTML=shown.length?renderRecords(shown,contextual.contextExpanded):'<div class="empty-note">保存記録はありません。</div>';const status=document.getElementById('list-status');if(status){const modeLabel={cards:'保存記録カード',detail:'用途別明細',daily:'日付まとめ'}[getFilters().view]||'保存記録カード';status.textContent=`${modeLabel} / ${contextual.contextLabel} / 表示 ${shown.length}件 / 該当 ${matched.length}件 / 対象 ${contextual.records.length}件 / 保存 ${all.length}件`;}if(window.__workRecordBindFolds)window.__workRecordBindFolds();}
+function exportGenryoJson(){const records=safeReadRecords();const payload={schema:GENRYO_EXPORT_SCHEMA,exported_at:new Date().toISOString(),records};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const ymd=new Date().toISOString().slice(0,10).replace(/-/g,'');const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`work_record_genryo_${ymd}.json`;document.body.appendChild(a);a.click();const href=a.href;a.remove();setTimeout(()=>URL.revokeObjectURL(href),1000);const status=document.getElementById('import-export-status');if(status)status.textContent=`表示条件に関係なく、全件 ${records.length}件をJSONバックアップとして書き出しました`;}
+function normalizeImportPayload(parsed){if(Array.isArray(parsed))return parsed;if(parsed&&Array.isArray(parsed.records))return parsed.records;return null;}
+function newer(a,b){return String(a.updated_at||a.created_at||'')>=String(b.updated_at||b.created_at||'');}
+function deleteGenryoRecord(encodedId){const recordId=decodeURIComponent(encodedId||'');if(!recordId)return;const records=safeReadRecords();const target=records.find(record=>record&&record.record_id===recordId);if(!target)return;const label=recordLabel(target);if(!confirm(`この原料処理記録を削除します。\n${label}\n\n削除前に必要なら全件JSON書き出しでバックアップしてください。`))return;const next=records.filter(record=>!(record&&record.record_id===recordId));if(!safeWriteRecords(next)){alert('削除できませんでした。');return;}const status=document.getElementById('import-export-status');if(status)status.textContent=`1件削除しました。保存 ${next.length}件`;loadGenryoList();}
+function deleteAllGenryoRecords(){const records=safeReadRecords();const count=records.length;const status=document.getElementById('import-export-status');if(!count){if(status)status.textContent='削除対象の原料処理保存記録はありません。';return;}if(!confirm(`原料処理の保存記録 ${count}件を全件削除します。\n\n必要な場合は、先に「全件JSON書き出し」でバックアップしてください。\nこの操作は元に戻せません。`))return;if(!confirm(`最終確認です。\n原料処理の保存記録 ${count}件を全件削除してよろしいですか？`))return;if(!safeWriteRecords([])){alert('全件削除できませんでした。');return;}if(status)status.textContent=`原料処理の保存記録 ${count}件を全件削除しました。`;loadGenryoList();}
+function importGenryoJson(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const parsed=JSON.parse(String(reader.result||''));const incoming=normalizeImportPayload(parsed);if(!incoming)throw new Error('records not found');const current=safeReadRecords();const map=new Map();current.forEach(record=>{if(record&&record.record_id)map.set(record.record_id,record);});let added=0,updated=0;incoming.forEach(record=>{if(!record||typeof record!=='object')return;if(!record.record_id)record.record_id='genryo_import_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);const old=map.get(record.record_id);if(!old){map.set(record.record_id,record);added++;}else if(newer(record,old)){map.set(record.record_id,record);updated++;}});const merged=[...map.values()].sort(recordSort);if(!safeWriteRecords(merged))throw new Error('localStorage write failed');const status=document.getElementById('import-export-status');if(status)status.textContent=`読込 ${added}件追加 / ${updated}件更新 / 保存 ${merged.length}件`;loadGenryoList();}catch(_err){alert('JSONを読み込めませんでした。');}finally{const input=document.getElementById('genryo-import-file');if(input)input.value='';}};reader.readAsText(file,'utf-8');}
+window.addEventListener('DOMContentLoaded',loadGenryoList);
+</script>
+  <script src="assets/ui.js?v=20260612genryolistio" defer></script>
+</body>
+</html>

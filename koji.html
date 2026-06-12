@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2f4257">
+  <title>製麹記録</title>
+  <link rel="stylesheet" href="assets/base.css?v=20260612genryolistio">
+</head>
+<body>
+  <div class="tool-nav">
+    <a class="back-btn" href="flowchart.html">← 工程別記録へ戻る</a>
+    <div class="tool-nav-place"><span class="tool-nav-title">製麹記録</span></div>
+  </div>
+  <main class="tool-body">
+    <section class="screen-lead">
+      <h1>製麹記録</h1>
+    </section>
+    <div class="wrapper wide">
+      <section class="input-block">
+        <h2>1. 麹の対象</h2>
+        <div class="form-grid">
+          <div class="field"><label>引込日</label><input type="date"></div>
+          <div class="field"><label>引込時刻</label><input type="time" step="1"></div>
+          <div class="field"><label>用途分類</label><select><option>酛麹</option><option>添麹</option><option>仲麹</option><option>留麹</option><option>四段麹</option><option>その他</option></select></div>
+          <div class="field"><label>記号・順号</label><input placeholder="例：酛1 / 仕込12号"></div>
+          <div class="field"><label>白米数量 kg</label><input inputmode="decimal" placeholder="kg"></div>
+          <div class="field"><label>精米歩合 %</label><input inputmode="decimal" placeholder="%"></div>
+          <div class="field"><label>種麹 種類</label><input placeholder="種類"></div>
+          <div class="field"><label>種麹 数量</label><input inputmode="decimal" placeholder="g / kg など"></div>
+        </div>
+      </section>
+
+      <section class="input-block">
+        <h2>2. 使用・移出先</h2>
+        <div class="form-grid">
+          <div class="field"><label>使用区分</label><select><option>酒母</option><option>醪 初添</option><option>醪 仲添</option><option>醪 留添</option><option>醪 四段</option><option>移出</option><option>その他</option></select></div>
+          <div class="field"><label>使用先</label><input placeholder="酛番号 / 醪番号 / 移出先"></div>
+          <div class="field"><label>使用予定日</label><input type="date"></div>
+          <div class="field"><label>使用数量 kg</label><input inputmode="decimal" placeholder="kg"></div>
+        </div>
+      </section>
+
+      <section class="input-block">
+        <h2>3. 製麹経過</h2>
+        <div class="rice-card-list">
+          <article class="rice-card">
+            <div class="rice-card-head"><div><h3>引込</h3><span class="card-meta">開始時点の温度と室内条件</span></div></div>
+            <div class="rice-main-grid">
+              <div class="field compact-field"><label>月日</label><input type="date"></div>
+              <div class="field compact-field"><label>操作時刻</label><input type="time" step="1"></div>
+              <div class="field compact-field"><label>在室時間 h</label><input inputmode="decimal" placeholder="自動化候補"></div>
+              <div class="field compact-field"><label>品温 ℃</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>乾球温 ℃</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>湿球温 ℃</label><input inputmode="decimal"></div>
+              <div class="field compact-field memo-field"><label>状貌・メモ</label><textarea placeholder="蒸米状態、湿り、締まり、香りなど"></textarea></div>
+            </div>
+          </article>
+          <article class="rice-card">
+            <div class="rice-card-head"><div><h3>経過操作</h3><span class="card-meta">切返・盛・仲仕事・仕舞仕事など</span></div></div>
+            <div class="rice-main-grid">
+              <div class="field compact-field"><label>操作</label><select><option>切返</option><option>盛</option><option>仲仕事</option><option>仕舞仕事</option><option>最高積替</option><option>出麹</option><option>その他</option></select></div>
+              <div class="field compact-field"><label>月日</label><input type="date"></div>
+              <div class="field compact-field"><label>操作時刻</label><input type="time" step="1"></div>
+              <div class="field compact-field"><label>在室時間 h</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>品温 ℃</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>乾球温 ℃</label><input inputmode="decimal"></div>
+              <div class="field compact-field"><label>湿球温 ℃</label><input inputmode="decimal"></div>
+              <div class="field compact-field memo-field"><label>状貌・メモ</label><textarea placeholder="ハゼ、乾き、破精込み、香り、手入れ判断など"></textarea></div>
+            </div>
+          </article>
+        </div>
+        <div class="actions"><button class="btn primary" type="button">経過カードを追加（仮）</button><button class="btn" type="button">下書き保存（仮）</button></div>
+      </section>
+
+      <section class="input-block">
+        <h2>4. 出麹・製成確認</h2>
+        <div class="form-grid">
+          <div class="field"><label>出麹日</label><input type="date"></div>
+          <div class="field"><label>出麹時刻</label><input type="time" step="1"></div>
+          <div class="field"><label>出麹数量 kg</label><input inputmode="decimal" placeholder="kg"></div>
+          <div class="field memo-field"><label>出麹所見</label><textarea placeholder="香り、乾き、ハゼ、使用判断など"></textarea></div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="assets/ui.js?v=20260612genryolistio" defer></script>
+</body>
+</html>
