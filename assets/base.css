@@ -509,7 +509,7 @@ body.dark .danger-panel p{color:#ffd3d3;}
   .record-usage-row{grid-template-columns:1fr;}
 }
 
-/* 20260612 原料処理一覧: 履歴別カード。左青線は用途別ではなく、1回保存した原料処理記録に付ける。 */
+/* 20260612 原料処理一覧: 履歴別カード。左青線は履歴側、用途明細は縦に増えても読める行表示にする。 */
 .daily-group-block{
   display:grid;
   gap:10px;
@@ -538,7 +538,7 @@ body.dark .danger-panel p{color:#ffd3d3;}
 }
 .genryo-history-card{
   display:grid;
-  gap:10px;
+  gap:8px;
   border:1px solid var(--line-soft);
   border-left:4px solid var(--role-action-border);
   border-radius:14px;
@@ -650,6 +650,17 @@ body.dark .danger-panel p{color:#ffd3d3;}
 .daily-steam-summary{
   display:grid;
   gap:7px;
+}
+
+.genryo-history-row-list{
+  gap:6px;
+}
+.genryo-history-row-list .record-usage-row{
+  padding-top:7px;
+}
+.genryo-history-row-list .record-usage-row:first-child{
+  border-top:0;
+  padding-top:0;
 }
 body.theme-dark .daily-group-block + .daily-group-block,
 body.dark .daily-group-block + .daily-group-block,
