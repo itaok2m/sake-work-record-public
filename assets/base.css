@@ -704,3 +704,84 @@ body.dark .genryo-usage-note{
   .genryo-usage-line-main,
   .genryo-usage-line-sub{grid-template-columns:1fr;}
 }
+
+/* 20260612 原料処理一覧: 履歴カード内の用途明細を、横スクロールなしの項目名付き複数列表示にする。 */
+.record-usage-row{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:7px;
+  border:1px solid var(--line-soft);
+  border-radius:12px;
+  background:var(--surface-soft);
+  padding:9px 10px;
+  font-size:13px;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+  min-width:0;
+}
+.genryo-history-row-list .record-usage-row:first-child{
+  border-top:1px solid var(--line-soft);
+  padding-top:9px;
+}
+.record-usage-kind{
+  min-width:0;
+  font-size:14px;
+  line-height:1.35;
+}
+.record-usage-kind b{
+  color:var(--text);
+  font-weight:900;
+}
+.record-usage-fields{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(118px,1fr));
+  gap:5px 10px;
+  min-width:0;
+}
+.record-usage-field{
+  min-width:0;
+  color:var(--text);
+  overflow-wrap:anywhere;
+}
+.record-usage-field b{
+  display:inline-block;
+  margin-right:5px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  line-height:1.35;
+  white-space:nowrap;
+}
+.record-usage-row .record-note{
+  grid-column:1/-1;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:6px;
+  border-top:1px dashed var(--line-soft);
+  padding-top:6px;
+  color:var(--muted);
+}
+.record-usage-row .record-note b{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.record-usage-row .record-note span{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+@media(min-width:720px){
+  .record-usage-field.wide{grid-column:span 2;}
+}
+@media(max-width:420px){
+  .record-usage-fields{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:340px){
+  .record-usage-fields{grid-template-columns:1fr;}
+}
+body.theme-dark .record-usage-row,
+body.dark .record-usage-row{
+  border-color:var(--line-soft);
+  background:var(--surface-soft);
+}
