@@ -705,7 +705,7 @@ body.dark .genryo-usage-note{
   .genryo-usage-line-sub{grid-template-columns:1fr;}
 }
 
-/* 20260612 原料処理一覧: 履歴カード内の用途明細を、横スクロールなしの項目名付き複数列表示にする。PC幅では左寄せの詰め表示にする。 */
+/* 20260616 原料処理一覧: 履歴カード内の用途明細を、項目名固定幅の複数列表示にする。品種は精米歩合を含め、検蒸順表記に合わせる。 */
 .record-usage-row{
   display:grid;
   grid-template-columns:1fr;
@@ -744,20 +744,28 @@ body.dark .genryo-usage-note{
   flex:0 1 auto;
   min-width:0;
   max-width:100%;
+  display:grid;
+  grid-template-columns:3.8em minmax(0,auto);
+  column-gap:4px;
+  align-items:baseline;
   color:var(--text);
   overflow-wrap:anywhere;
 }
 .record-usage-field.wide{
-  flex-basis:auto;
+  min-width:min(100%,220px);
 }
 .record-usage-field b{
-  display:inline-block;
-  margin-right:5px;
+  display:block;
+  margin-right:0;
   color:var(--muted);
   font-size:11px;
   font-weight:900;
   line-height:1.35;
   white-space:nowrap;
+}
+.record-usage-field span{
+  min-width:0;
+  overflow-wrap:anywhere;
 }
 .record-usage-row .record-note{
   grid-column:1/-1;
@@ -788,7 +796,9 @@ body.dark .genryo-usage-note{
   .record-usage-field.wide{
     min-width:0;
     flex-basis:auto;
+    grid-template-columns:3.8em minmax(0,1fr);
   }
+  .record-usage-field.wide{grid-column:1/-1;}
 }
 @media(max-width:340px){
   .record-usage-fields{grid-template-columns:1fr;}
