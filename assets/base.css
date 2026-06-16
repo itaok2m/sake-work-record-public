@@ -705,7 +705,7 @@ body.dark .genryo-usage-note{
   .genryo-usage-line-sub{grid-template-columns:1fr;}
 }
 
-/* 20260612 原料処理一覧: 履歴カード内の用途明細を、横スクロールなしの項目名付き複数列表示にする。 */
+/* 20260612 原料処理一覧: 履歴カード内の用途明細を、横スクロールなしの項目名付き複数列表示にする。PC幅では左寄せの詰め表示にする。 */
 .record-usage-row{
   display:grid;
   grid-template-columns:1fr;
@@ -733,15 +733,22 @@ body.dark .genryo-usage-note{
   font-weight:900;
 }
 .record-usage-fields{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(118px,1fr));
-  gap:5px 10px;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-start;
+  align-items:baseline;
+  gap:5px 18px;
   min-width:0;
 }
 .record-usage-field{
+  flex:0 1 auto;
   min-width:0;
+  max-width:100%;
   color:var(--text);
   overflow-wrap:anywhere;
+}
+.record-usage-field.wide{
+  flex-basis:auto;
 }
 .record-usage-field b{
   display:inline-block;
@@ -771,11 +778,17 @@ body.dark .genryo-usage-note{
   min-width:0;
   overflow-wrap:anywhere;
 }
-@media(min-width:720px){
-  .record-usage-field.wide{grid-column:span 2;}
-}
-@media(max-width:420px){
-  .record-usage-fields{grid-template-columns:1fr 1fr;}
+@media(max-width:620px){
+  .record-usage-fields{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:5px 10px;
+  }
+  .record-usage-field,
+  .record-usage-field.wide{
+    min-width:0;
+    flex-basis:auto;
+  }
 }
 @media(max-width:340px){
   .record-usage-fields{grid-template-columns:1fr;}
