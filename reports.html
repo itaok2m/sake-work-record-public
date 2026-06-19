@@ -81,7 +81,7 @@ function soakMinutes(card){const text=String(card?.soak_duration||'');let m=text
 function riceName(card){const variety=asText(card?.rice_variety)||'品種未入力';const polish=asText(card?.rice_polish);return polish?`${variety} ${polish}%`:variety;}
 function soakDisplay(card){const start=asText(card?.soak_start)||'-';const end=asText(card?.soak_end)||'-';const duration=asText(card?.soak_duration);return duration?`${start}→${end}（${duration}）`:`${start}→${end}`;}
 function cardSearchText(card){return [card.usage_kind,card.shikomi_no,card.rice_variety,card.rice_polish,card.rice_kg,card.wash_start,card.soak_start,card.soak_end,card.soak_duration,card.water_temp,card.kenjo_order,card.note].map(norm).join(' ');}
-function steamSearchText(record){const s=record.steam||{};const segs=Array.isArray(s.segments)?s.segments:[];return [s.actual_date,s.steam_in_time,s.boil_time,s.steam_through_time,s.steam_end_time,s.steaming_time_min,s.note,segs.map(seg=>[seg.label,seg.minutes,seg.raw_steam_pressure,seg.dry_steam_pressure].join(' ')).join(' ')].map(norm).join(' ');}
+function steamSearchText(record){const s=record.steam||{};const segs=Array.isArray(s.segments)?s.segments:[];return [s.actual_date,s.steam_in_time,s.boil_time,s.steam_through_time,s.steam_end_time,s.steaming_time_min,s.steam_after_total_min,s.note,segs.map(seg=>[seg.label,seg.minutes,seg.raw_steam_pressure,seg.dry_steam_pressure].join(' ')).join(' ')].map(norm).join(' ');}
 function recordSearchText(record){return [record.wash_date,record.steam?.actual_date,steamSearchText(record),(record.rice_cards||[]).map(cardSearchText).join(' ')].map(norm).join(' ');}
 function getGenryoOutputFilters(){const shikomiRaw=(document.getElementById('genryo-output-shikomi')?.value||'').trim();return {from:document.getElementById('genryo-output-date-from')?.value||'',to:document.getElementById('genryo-output-date-to')?.value||'',kind:document.getElementById('genryo-output-kind')?.value||'',shikomiRaw,shikomi:normalizeShikomi(shikomiRaw),keyword:norm((document.getElementById('genryo-output-keyword')?.value||'').trim())};}
 function dateInRange(value,from,to){if(!value)return false;if(from&&value<from)return false;if(to&&value>to)return false;return true;}
@@ -122,27 +122,41 @@ function aggregateHtml(sum){
 }
 function hasPressureValue(seg){return Boolean(seg&&[seg.minutes,seg.raw_steam_pressure,seg.dry_steam_pressure].some(v=>String(v||'').trim()));}
 function pressureValue(value,noneWhenBlank){const text=String(value||'').trim();return text || (noneWhenBlank?'なし':'');}
-function legacyPressureLabel(label){
-  const text=String(label||'').trim();
-  if(text==='沸騰まで')return '沸騰〜蒸気抜け';
-  if(text==='30〜60分')return '30分〜蒸し終了';
-  return text;
-}
 function steamPressureDisplayRows(steam){
   const segs=Array.isArray(steam?.segments)?steam.segments:[];
-  const hasNewKey=segs.some(seg=>seg&&seg.key);
   const rows=[];
-  const add=(label,seg,minutes='')=>{if(!hasPressureValue(seg))return;const raw=pressureValue(seg.raw_steam_pressure,false);const dry=pressureValue(seg.dry_steam_pressure,Boolean(raw));rows.push({label,minutes,raw,dry});};
-  if(!hasNewKey){segs.forEach(seg=>add(legacyPressureLabel(seg.label),seg,seg.minutes||''));return rows;}
+  const add=(label,seg)=>{
+    if(!hasPressureValue(seg))return;
+    const raw=pressureValue(seg.raw_steam_pressure,false);
+    const dry=pressureValue(seg.dry_steam_pressure,Boolean(raw));
+    rows.push({label,minutes:String(seg.minutes||'').trim(),raw,dry});
+  };
   const byKey={};segs.forEach(seg=>{if(seg&&seg.key)byKey[seg.key]=seg;});
-  const boil=byKey.boil_to_through || {};
-  const base=byKey.through_to_end_base || {};
-  const sw=byKey.before_end_switch || {};
-  const switchOn=hasPressureValue(sw);
-  const switchMin=String(sw.minutes||'').trim();
-  add('沸騰〜蒸気抜け',boil,'');
-  add(switchOn?(switchMin?`蒸気抜け〜終了前${switchMin}分`:'蒸気抜け〜切替前'):'蒸気抜け〜蒸し終了',base,'');
-  if(switchOn){add(switchMin?`終了前${switchMin}分〜蒸し終了`:'切替後〜蒸し終了',sw,switchMin);}
+  const used=new Set();
+  const use=(seg)=>{if(seg)used.add(seg);return seg||{};};
+  const findSeg=(slot)=>{
+    if(slot===1){
+      return byKey.steam_after_1 || byKey.through_to_end_base || segs.find(seg=>{
+        const label=String(seg?.label||'');
+        return label==='区間1'||label.includes('蒸気抜け後 前半')||label.includes('蒸気抜け〜蒸し終了')||label.includes('蒸気抜け〜終了前')||label.includes('蒸気抜け〜切替前');
+      });
+    }
+    return byKey.steam_after_2 || byKey.before_end_switch || segs.find(seg=>{
+      const label=String(seg?.label||'');
+      return label==='区間2'||label.includes('蒸気抜け後 後半')||label.includes('終了前')||label.includes('切替後');
+    });
+  };
+  const one=use(findSeg(1));
+  const two=use(findSeg(2));
+  add('区間1',one);
+  add('区間2',two);
+  segs.forEach(seg=>{
+    if(used.has(seg))return;
+    const key=String(seg?.key||'');
+    const label=String(seg?.label||'');
+    if(key==='boil_to_through'||label.includes('沸騰'))return;
+    add(label||'区間',seg);
+  });
   return rows;
 }
 function steamItem(label,value,suffix='',extraClass=''){
@@ -153,17 +167,17 @@ function buildPrintHtml(records,label){
   const days=records.map((record,index)=>{
     const s=record.steam||{};
     const cards=Array.isArray(record.rice_cards)?record.rice_cards:[];
-    const rows=cards.map(card=>`<tr><td class="usage-cell">${escapeHtml(card.usage_kind||'')}</td><td class="shikomi-cell">${escapeHtml(card.shikomi_no||'')}</td><td class="rice-name-cell">${escapeHtml(riceName(card))}</td><td class="kg-cell strong-num">${escapeHtml(formatKg(kgValue(card)))} kg</td><td class="time-cell">${escapeHtml(card.wash_start||'')}</td><td class="soak-cell">${escapeHtml(soakDisplay(card))}</td><td class="temp-cell">${escapeHtml(card.water_temp?card.water_temp+'℃':'')}</td><td class="order-cell">${escapeHtml(card.kenjo_order||'')}</td><td class="note-cell">${escapeHtml(card.note||'')}</td></tr>`).join('');
+    const rows=cards.map(card=>`<tr><td class="usage-cell">${escapeHtml(card.usage_kind||'')}</td><td class="shikomi-cell">${escapeHtml(card.shikomi_no||'')}</td><td>${escapeHtml(riceName(card))}</td><td class="num strong-num">${escapeHtml(formatKg(kgValue(card)))} kg</td><td class="time-cell">${escapeHtml(card.wash_start||'')}</td><td class="soak-cell">${escapeHtml(soakDisplay(card))}</td><td class="num">${escapeHtml(card.water_temp?card.water_temp+'℃':'')}</td><td class="num">${escapeHtml(card.kenjo_order||'')}</td><td>${escapeHtml(card.note||'')}</td></tr>`).join('');
     const pressure=steamPressureDisplayRows(s).map(row=>`<tr><td>${escapeHtml(row.label)}</td><td class="num">${escapeHtml(row.minutes||'')}</td><td class="num">${escapeHtml(row.raw||'')}</td><td class="num">${escapeHtml(row.dry||'')}</td></tr>`).join('');
     const steam = `<div class="steam-grid compact-steam">${steamItem('蒸気入れ',s.steam_in_time)}${steamItem('沸騰',s.boil_time)}${steamItem('蒸気抜け',s.steam_through_time)}${steamItem('蒸し終了',s.steam_end_time)}${steamItem('蒸し時間',s.steaming_time_min,'分','steam-duration')}</div>`;
-    const pressureBlock = pressure ? `<div class="side-box pressure-box"><div class="sub-title tight">蒸気圧</div><table class="pressure-table"><thead><tr><th>区間</th><th>分</th><th>生蒸気 MPa</th><th>乾燥蒸気 MPa</th></tr></thead><tbody>${pressure}</tbody></table></div>` : '';
+    const pressureBlock = pressure ? `<div class="side-box pressure-box"><div class="sub-title tight">蒸気抜け後 内訳</div><table class="pressure-table"><thead><tr><th>区間</th><th>分</th><th>生蒸気 MPa</th><th>乾燥蒸気 MPa</th></tr></thead><tbody>${pressure}</tbody></table></div>` : '';
     return `<article class="day-block report-block"><header class="day-titlebar"><div class="day-main"><b>No.${index+1}</b><span>洗米日 ${escapeHtml(formatDate(record.wash_date))}</span></div><div class="day-sub"><span>蒸し実施日 ${escapeHtml(formatDate(s.actual_date))}</span><span>白米合計 ${escapeHtml(formatKg(totalKg(cards)))} kg</span></div></header><table class="rice-table"><colgroup><col class="c-usage"><col class="c-shikomi"><col class="c-rice"><col class="c-kg"><col class="c-wash"><col class="c-soak"><col class="c-temp"><col class="c-order"><col class="c-note"></colgroup><thead><tr><th>用途</th><th>仕込号</th><th>品種 精米</th><th>白米</th><th>洗米</th><th>浸漬</th><th>水温</th><th>検蒸順</th><th>備考</th></tr></thead><tbody>${rows||'<tr><td colspan="9">米明細なし</td></tr>'}</tbody></table><div class="lower-grid"><div class="side-box steam-panel"><div class="sub-title tight">翌日蒸し</div>${steam}${s.note?`<div class="small-note"><b>蒸し備考</b> ${escapeHtml(s.note)}</div>`:''}</div>${pressureBlock}</div></article>`;
   }).join('');
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>原料処理 日別帳票</title><style>
 :root{--ink:#111;--muted:#4d5660;--line:#b3bcc5;--line-dark:#6d7b88;--head:#e8edf1;--head2:#f2f5f7;--blue:#1f5f8f;--blue-dark:#173e5f;--blue-pale:#eef6fb;--green-pale:#eef7f0;--note:#f7f9fb;--usage:#f5faf6;--shadow:#dfe5ea}
 *{box-sizing:border-box}
 body{font-family:Meiryo,"Yu Gothic",sans-serif;margin:10px;color:var(--ink);background:#fff;font-size:12px;line-height:1.28}
-.page{max-width:1040px;margin:0 auto}
+.page{max-width:1180px;margin:0 auto}
 .no-print{margin:0 0 8px}.no-print button{padding:6px 12px}
 h1{font-size:20px;margin:0 0 4px}.print-note{font-size:11px;color:var(--muted);margin:0 0 8px}
 .report-block{background:#fff;border:1px solid var(--line);box-shadow:0 0 0 1px rgba(0,0,0,.02);break-inside:avoid}
@@ -171,16 +185,15 @@ h1{font-size:20px;margin:0 0 4px}.print-note{font-size:11px;color:var(--muted);m
 .block-title{font-size:15px;font-weight:700;color:var(--blue-dark);border-bottom:2px solid var(--blue-dark);padding-bottom:3px;margin-bottom:7px}
 .summary-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 8px}.summary-kpis div{border:1px solid var(--line);background:var(--head2);padding:6px 8px}.summary-kpis b{display:block;font-size:10px;color:var(--muted)}.summary-kpis span{font-size:14px;font-weight:700}
 .sub-title{font-size:12px;font-weight:700;color:#162b3a;margin:6px 0 4px}.sub-title.tight{margin:0 0 4px}
-table{border-collapse:collapse;width:100%;table-layout:auto;font-size:11px;margin:0}th,td{border:1px solid var(--line);padding:3px 4px;vertical-align:middle;word-break:normal;text-align:center}th{background:var(--head);font-weight:700;color:#111;border-color:var(--line-dark)}
-.usage-summary{max-width:520px}.usage-summary th:nth-child(1),.usage-summary td:nth-child(1){width:34%}.usage-summary th:nth-child(2),.usage-summary td:nth-child(2){width:34%}.usage-summary th:nth-child(3),.usage-summary td:nth-child(3){width:32%}
+table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:11px;margin:0}th,td{border:1px solid var(--line);padding:3px 5px;vertical-align:middle;word-break:break-word}th{background:var(--head);font-weight:700;color:#111;border-color:var(--line-dark)}
+.usage-summary{max-width:560px}.usage-summary th:nth-child(1){width:34%}.usage-summary th:nth-child(2){width:34%}.usage-summary th:nth-child(3){width:32%}
 .day-block{margin:7px 0;padding:0;border-left:5px solid var(--blue);border-radius:4px;overflow:hidden}
 .day-titlebar{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;background:var(--blue-pale);border-bottom:2px solid var(--blue-dark);padding:6px 8px}.day-main{display:flex;gap:12px;align-items:center;font-size:14px;font-weight:700}.day-main b{display:inline-block;background:var(--blue-dark);color:#fff;padding:2px 7px;border-radius:3px}.day-sub{display:flex;gap:12px;align-items:center;color:#1d3447;font-weight:700;font-size:11px;white-space:nowrap}
-.rice-table{font-size:11px;table-layout:fixed}.rice-table th,.rice-table td{padding:3px 3px;text-align:center}.rice-table tbody tr:nth-child(even) td{background:#fbfcfd}.c-usage{width:4.4em}.c-shikomi{width:4.2em}.c-rice{width:13em}.c-kg{width:5.4em}.c-wash{width:5.2em}.c-soak{width:18.5em}.c-temp{width:5.2em}.c-order{width:4.4em}.c-note{width:auto}
-.rice-table th:nth-child(1),.rice-table td:nth-child(1){width:4.4em;min-width:4.4em;max-width:4.4em}.rice-table th:nth-child(2),.rice-table td:nth-child(2){width:4.2em;min-width:4.2em;max-width:4.2em}.rice-table th:nth-child(4),.rice-table td:nth-child(4){width:5.4em;min-width:5.4em;max-width:5.4em}.rice-table th:nth-child(5),.rice-table td:nth-child(5){width:5.2em;min-width:5.2em;max-width:5.2em}.rice-table th:nth-child(7),.rice-table td:nth-child(7){width:5.2em;min-width:5.2em;max-width:5.2em}.rice-table th:nth-child(8),.rice-table td:nth-child(8){width:4.4em;min-width:4.4em;max-width:4.4em}
-.usage-cell{font-weight:700;background:var(--usage);white-space:nowrap}.shikomi-cell{font-weight:700;white-space:nowrap}.rice-name-cell{font-weight:600}.kg-cell,.temp-cell,.order-cell,.time-cell{white-space:nowrap}.soak-cell{font-feature-settings:"tnum";white-space:nowrap}.note-cell{white-space:normal}.num{text-align:center;white-space:nowrap}.strong-num{font-weight:700}
-.lower-grid{display:grid;grid-template-columns:minmax(360px,.9fr) minmax(360px,1fr);gap:7px;padding:5px 8px 7px;background:#fff}.side-box{border:1px solid var(--line);background:#fff;padding:5px 6px}.steam-panel{background:var(--note)}.steam-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px 6px}.steam-item{display:flex;justify-content:space-between;gap:5px;border-bottom:1px dotted #ccd3d9;padding:1px 0}.item-label{color:#43505b}.steam-item b{white-space:nowrap}.steam-duration b{color:var(--blue-dark);font-size:12px}.small-note{font-size:10.5px;margin-top:4px;color:#444}.pressure-table{font-size:10.5px}.pressure-table th:nth-child(1){width:46%}.pressure-table th:nth-child(2){width:14%}.pressure-table th:nth-child(3){width:20%}.pressure-table th:nth-child(4){width:20%}
+.rice-table{font-size:11px}.rice-table th,.rice-table td{padding:3px 5px}.rice-table tbody tr:nth-child(even) td{background:#fbfcfd}.c-usage{width:7%}.c-shikomi{width:8%}.c-rice{width:17%}.c-kg{width:8%}.c-wash{width:8%}.c-soak{width:27%}.c-temp{width:8%}.c-order{width:8%}.c-note{width:9%}
+.usage-cell{font-weight:700;background:var(--usage)}.shikomi-cell{font-weight:700}.time-cell{white-space:nowrap}.soak-cell{font-feature-settings:"tnum"}.num{text-align:right;white-space:nowrap}.strong-num{font-weight:700}
+.lower-grid{display:grid;grid-template-columns:1fr;gap:5px;padding:5px 6px 6px;background:#fff}.side-box{border:1px solid var(--line);background:#fff;padding:4px 6px}.steam-panel{background:var(--note)}.steam-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px 6px}.steam-item{display:flex;justify-content:space-between;gap:5px;border-bottom:1px dotted #ccd3d9;padding:1px 0}.item-label{color:#43505b}.steam-item b{white-space:nowrap}.steam-duration b{color:var(--blue-dark);font-size:12px}.small-note{font-size:10.5px;margin-top:4px;color:#444}.pressure-table{font-size:10.5px}.pressure-table th:nth-child(1){width:18%}.pressure-table th:nth-child(2){width:12%}.pressure-table th:nth-child(3){width:35%}.pressure-table th:nth-child(4){width:35%}
 @media (max-width:900px){.page{max-width:none}.day-titlebar{grid-template-columns:1fr}.day-sub{flex-wrap:wrap}.lower-grid{grid-template-columns:1fr}.summary-kpis{grid-template-columns:1fr}.rice-table{font-size:10.5px}}
-@media print{body{margin:7mm;font-size:10px}.page{max-width:none}.no-print{display:none}h1{font-size:16px}.print-note{font-size:9.5px}.summary{padding:6px 8px;margin-bottom:6px}.day-block{page-break-inside:avoid;margin:5px 0;border-radius:0}.day-titlebar{padding:4px 6px}.day-main{font-size:12px}.day-sub{font-size:9.5px}.rice-table,.pressure-table{font-size:8.8px}th,td{padding:2px 2px}.rice-table th,.rice-table td{padding:2px 2px}.c-usage{width:4.2em}.c-shikomi{width:4em}.c-rice{width:12em}.c-kg{width:5em}.c-wash{width:4.8em}.c-soak{width:17em}.c-temp{width:4.8em}.c-order{width:4.2em}.lower-grid{padding:5px 6px;gap:5px}.side-box{padding:4px}.steam-grid{grid-template-columns:repeat(5,1fr);font-size:8.8px;gap:2px 5px}tr{page-break-inside:avoid}.report-block{box-shadow:none}}
+@media print{body{margin:7mm;font-size:10px}.page{max-width:none}.no-print{display:none}h1{font-size:16px}.print-note{font-size:9.5px}.summary{padding:6px 8px;margin-bottom:6px}.day-block{page-break-inside:avoid;margin:5px 0;border-radius:0}.day-titlebar{padding:4px 6px}.day-main{font-size:12px}.day-sub{font-size:9.5px}.rice-table,.pressure-table{font-size:8.8px}th,td{padding:2px 3px}.lower-grid{padding:5px 6px;gap:5px}.side-box{padding:4px}.steam-grid{grid-template-columns:repeat(5,1fr);font-size:8.8px;gap:2px 5px}tr{page-break-inside:avoid}.report-block{box-shadow:none}}
 </style></head><body><div class="page"><div class="no-print"><button onclick="window.print()">印刷 / PDF保存</button></div><h1>原料処理 日別帳票</h1><p class="print-note">出力日時: ${escapeHtml(formatDateTime(new Date().toISOString()))} / ${escapeHtml(label)}。修正は作業記録ツール上で行い、再出力してください。</p>${aggregateHtml(sum)}${days}</div></body></html>`;
 }
 function openGenryoPrintHtml(allMode){const records=selectedGenryoRecords(Boolean(allMode));if(!records.length){alert(allMode?'原料処理の保存記録がありません。':'条件に該当する原料処理記録がありません。');updateGenryoOutputStatus();return;}const label=selectedOutputLabel(Boolean(allMode),records);const blob=new Blob([buildPrintHtml(records,label)],{type:'text/html;charset=utf-8'});const url=URL.createObjectURL(blob);const win=window.open(url,'_blank');if(!win){downloadBlob(blob,`work_record_genryo_print_${ymdCompact()}_${outputFilenameSuffix(Boolean(allMode))}.html`);setReportStatus('ポップアップが開けなかったため、印刷用HTMLを保存しました。');}else{setTimeout(()=>URL.revokeObjectURL(url),60000);setReportStatus(`${label}の印刷用HTMLを開きました。PDF化は開いた画面の印刷機能を使ってください。`);}}
