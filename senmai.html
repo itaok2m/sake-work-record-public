@@ -6,6 +6,16 @@
   <meta name="theme-color" content="#2f4257">
   <title>原料処理入力</title>
   <link rel="stylesheet" href="assets/base.css?v=20260612genryolistio">
+
+  <style>
+    .steam-segment-list{display:grid;gap:8px}
+    .steam-segment-card{display:grid;grid-template-columns:auto minmax(72px,.7fr) minmax(108px,1fr) minmax(108px,1fr);gap:8px;align-items:end;border:1px solid #cbd5df;border-radius:10px;background:#f8fafb;padding:8px 10px}
+    .steam-segment-card .segment-chip{align-self:center;display:inline-flex;align-items:center;justify-content:center;min-width:48px;padding:4px 8px;border:1px solid #c3d0dc;border-radius:999px;background:#eef3f7;color:#243849;font-size:.86rem;font-weight:700;line-height:1.1;white-space:nowrap}
+    .steam-segment-card .field{margin:0}
+    .steam-segment-card label{text-align:center}
+    .steam-segment-card input{text-align:center}
+    @media (max-width:680px){.steam-segment-card{grid-template-columns:1fr}.steam-segment-card .segment-chip{justify-self:start}}
+  </style>
 </head>
 <body>
   <div class="tool-nav">
@@ -76,10 +86,10 @@
           </div>
 
           <div class="group">
-            <div class="group-title">蒸気圧</div>
+            <div class="group-title">蒸気抜け後 内訳</div>
             <div class="steam-segment-list">
-              <div class="steam-segment-card" data-segment-key="steam_after_1"><div class="field readout-field"><label>区間</label><div class="auto-readout segment-label">区間1</div></div><div class="field"><label>分</label><input class="steam-minutes" inputmode="numeric" oninput="updateSteamTotal()"></div><div class="field"><label>生蒸気 MPa</label><input class="raw-steam-pressure" inputmode="decimal"></div><div class="field"><label>乾燥蒸気 MPa</label><input class="dry-steam-pressure" inputmode="decimal"></div></div>
-              <div class="steam-segment-card" data-segment-key="steam_after_2"><div class="field readout-field"><label>区間</label><div class="auto-readout segment-label">区間2</div></div><div class="field"><label>分</label><input class="steam-minutes" inputmode="numeric" oninput="updateSteamTotal()"></div><div class="field"><label>生蒸気 MPa</label><input class="raw-steam-pressure" inputmode="decimal"></div><div class="field"><label>乾燥蒸気 MPa</label><input class="dry-steam-pressure" inputmode="decimal"></div></div>
+              <div class="steam-segment-card" data-segment-key="steam_after_1" data-segment-label="区間1"><span class="segment-chip">区間1</span><div class="field"><label>分</label><input class="steam-minutes" inputmode="numeric" oninput="updateSteamTotal()"></div><div class="field"><label>生蒸気 MPa</label><input class="raw-steam-pressure" inputmode="decimal"></div><div class="field"><label>乾燥蒸気 MPa</label><input class="dry-steam-pressure" inputmode="decimal"></div></div>
+              <div class="steam-segment-card" data-segment-key="steam_after_2" data-segment-label="区間2"><span class="segment-chip">区間2</span><div class="field"><label>分</label><input class="steam-minutes" inputmode="numeric" oninput="updateSteamTotal()"></div><div class="field"><label>生蒸気 MPa</label><input class="raw-steam-pressure" inputmode="decimal"></div><div class="field"><label>乾燥蒸気 MPa</label><input class="dry-steam-pressure" inputmode="decimal"></div></div>
             </div>
             <details class="card-details note-only steam-note-fold" data-fold data-fold-closed="備考を見る" data-fold-open="備考を閉じる">
               <summary><span>備考を見る</span><b>開く ▼</b></summary>
@@ -142,7 +152,7 @@ function normalizeSteamSegmentsForForm(segments){
   });
   return out;
 }
-function collectSteamSegments(){return [...document.querySelectorAll('.steam-segment-card')].map(card=>({key:card.dataset.segmentKey||'',label:card.querySelector('.segment-label')?.textContent||'',minutes:card.querySelector('.steam-minutes')?.value||'',raw_steam_pressure:card.querySelector('.raw-steam-pressure')?.value||'',dry_steam_pressure:card.querySelector('.dry-steam-pressure')?.value||''}));}
+function collectSteamSegments(){return [...document.querySelectorAll('.steam-segment-card')].map(card=>({key:card.dataset.segmentKey||'',label:card.dataset.segmentLabel||'',minutes:card.querySelector('.steam-minutes')?.value||'',raw_steam_pressure:card.querySelector('.raw-steam-pressure')?.value||'',dry_steam_pressure:card.querySelector('.dry-steam-pressure')?.value||''}));}
 function collectGenryoRecord(existing){const idInput=document.getElementById('record-id');const records=safeReadRecords();const existingRecord=existing || records.find(r=>r.record_id===idInput.value) || null;const now=nowIso();return {schema:GENRYO_SCHEMA,record_id:idInput.value||makeId('genryo'),created_at:existingRecord?.created_at||now,updated_at:now,wash_date:document.getElementById('wash-date')?.value||'',rice_cards:collectRiceCards(),steam:{actual_date:document.querySelector('.steam-actual-date')?.value||'',steam_in_time:document.querySelector('.steam-in-time')?.value||'',boil_time:document.querySelector('.boil-time')?.value||'',steam_through_time:document.querySelector('.steam-through-time')?.value||'',steam_end_time:document.querySelector('.steam-end-time')?.value||'',steaming_time_min:document.getElementById('steam-total-min')?.textContent||'0',steam_after_total_min:'',segments:collectSteamSegments(),note:document.querySelector('.steam-note')?.value||''}};}
 function saveGenryoRecord(){const records=safeReadRecords();const currentId=document.getElementById('record-id')?.value||'';const existing=records.find(r=>r.record_id===currentId);const record=collectGenryoRecord(existing);const next=records.filter(r=>r.record_id!==record.record_id);next.unshift(record);if(!safeWriteRecords(next)){alert('保存できませんでした。ブラウザの保存容量または設定を確認してください。');return;}document.getElementById('record-id').value=record.record_id;const status=document.getElementById('record-id-status');if(status)status.textContent='保存済み';const out=document.getElementById('save-result');if(out){out.innerHTML=`保存しました <a class="inline-link" href="genryo.html">原料処理一覧へ</a>`; out.className='notice';}}
 function clearRiceCards(){const list=document.getElementById('rice-card-list');list.innerHTML='';}
