@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2f4257">
   <title>データ管理</title>
-  <link rel="stylesheet" href="assets/base.css?v=20260623allbackupdata">
+  <link rel="stylesheet" href="assets/base.css?v=20260623datamanagementresp">
   <style>
     .data-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:12px}
     .data-kpi{border:1px solid rgba(47,66,87,.22);border-radius:14px;padding:12px;background:rgba(255,255,255,.68)}
@@ -27,7 +27,7 @@
   <main class="tool-body">
     <section class="screen-lead">
       <h1>データ管理</h1>
-      <p>この画面は、端末内保存を正本扱いせず、年度別の全工程一括JSONを正本バックアップとして扱うための画面です。</p>
+      <p>この画面は、ツールへ復元できるJSONバックアップを作成・読み込み・復元する画面です。工程別記録や出力・確認とは役割を分けます。</p>
     </section>
     <div class="wrapper wide">
       <section class="input-block">
@@ -38,41 +38,59 @@
           <button class="btn" type="button" onclick="refreshDeviceStatus()">状態を更新</button>
           <a class="btn" href="genryo.html">原料処理一覧へ</a>
         </div>
-        <p class="empty-note">端末内保存は、作業中キャッシュ・直近復元用です。ブラウザ再起動で消える端末があるため、作業区切りで全工程JSONを書き出してください。</p>
+        <p class="empty-note">端末内保存は、作業中キャッシュ・直近復元用です。ブラウザ再起動で消える端末があるため、作業区切りで全工程バックアップを作成してください。</p>
       </section>
 
       <section class="input-block">
-        <h2>全工程一括JSON 書き出し</h2>
-        <p>現在この端末に残っている保存データを、年度別の全工程一括JSONとして書き出します。未実装工程は空枠で保持します。</p>
+        <h2>Backup / 全工程バックアップ作成</h2>
+        <p>現在この端末に残っている保存データを、年度別の全工程一括JSONとして作成します。未実装工程は空枠で保持します。保存先は端末側の保存画面・ダウンロード設定で選んでください。</p>
         <div class="check-list">
           <div class="check-item"><b>通常バックアップ</b><span class="status ok">採用</span> 全工程一括JSON 1個</div>
           <div class="check-item"><b>工程別JSON</b><span class="status draft">補助</span> 移行・救済・調査用</div>
           <div class="check-item"><b>localStorage</b><span class="status warn">仮保存</span> 残れば便利だが正本ではない</div>
         </div>
         <div class="actions split-actions filter-actions">
-          <button class="btn primary" type="button" onclick="exportAllBackup()">全工程JSONを書き出し</button>
+          <button class="btn primary" type="button" onclick="exportAllBackup()">全工程バックアップを作成</button>
         </div>
         <div id="export-status" class="list-status"></div>
       </section>
 
       <section class="input-block">
-        <h2>全工程一括JSON 読込・復元</h2>
-        <p>読込後すぐには上書きしません。先にschema・BY・作成日時・件数を確認し、復元実行前に現在の端末内データを自動バックアップします。</p>
+        <h2>Import / バックアップ読み込み・Restore / 復元</h2>
+        <p>読み込み後すぐには上書きしません。先にschema・BY・作成日時・件数を確認し、復元実行前に現在の端末内データを自動バックアップします。</p>
         <div class="file-line">
           <input id="all-backup-file" type="file" accept="application/json,.json" onchange="previewAllBackupFile(this.files&&this.files[0])">
-          <button class="btn" type="button" onclick="clearImportPreview()">読込プレビューを消す</button>
+          <button class="btn" type="button" onclick="clearImportPreview()">読み込みプレビューを消す</button>
         </div>
-        <div id="import-preview" class="data-preview">全工程一括JSONを選択すると、ここに内容確認を表示します。</div>
+        <div id="import-preview" class="data-preview">全工程バックアップJSONを選択すると、ここに内容確認を表示します。</div>
         <div id="restore-panel" class="data-preview" hidden></div>
         <div id="import-status" class="list-status"></div>
       </section>
 
       <section class="input-block">
-        <h2>工程別JSONの扱い</h2>
-        <p>工程別JSONは通常の正本バックアップではありません。旧原料処理JSONの移行、一部工程だけの救済復元、不具合調査用として残します。</p>
+        <h2>補助機能 / 原料処理だけバックアップ</h2>
+        <p>通常は上の全工程バックアップを使います。ここは、旧データ移行・一部工程復元・不具合調査のために、原料処理だけを扱う補助機能です。</p>
+        <details class="common-info-toggle" data-fold data-fold-closed="原料処理だけバックアップを開く" data-fold-open="原料処理だけバックアップを閉じる">
+          <summary><span>原料処理だけバックアップを開く</span><b>開く ▼</b></summary>
+          <div class="genryo-backup-panel">
+            <div class="check-list">
+              <div class="check-item"><b>通常</b><span class="status ok">全工程</span> 正本バックアップは全工程バックアップです。</div>
+              <div class="check-item"><b>補助</b><span class="status draft">原料処理だけ</span> 原料処理だけの確認・移行・調査に使います。</div>
+            </div>
+            <div class="actions split-actions filter-actions">
+              <button class="btn" type="button" onclick="exportGenryoProcessBackup()">原料処理だけバックアップ作成</button>
+            </div>
+            <div class="file-line">
+              <input id="genryo-process-file" type="file" accept="application/json,.json" onchange="previewGenryoProcessFile(this.files&&this.files[0])">
+              <button class="btn" type="button" onclick="clearGenryoProcessPreview()">原料処理だけ読み込みプレビューを消す</button>
+            </div>
+            <div id="genryo-process-preview" class="data-preview">原料処理だけJSONを選択すると、ここに内容確認を表示します。</div>
+            <div id="genryo-process-status" class="list-status"></div>
+          </div>
+        </details>
         <div class="actions split-actions filter-actions">
-          <a class="btn" href="genryo.html">原料処理JSON（救済・移行用）へ</a>
-          <a class="btn" href="reports.html">人間向け出力へ</a>
+          <a class="btn" href="genryo.html">原料処理一覧へ</a>
+          <a class="btn" href="reports.html">人間用資料へ</a>
         </div>
       </section>
     </div>
@@ -82,6 +100,9 @@ const APP_NAME='sake-work-record';
 const APP_VERSION='0.15';
 const ALL_BACKUP_SCHEMA='workRecordAllBackupV1';
 const ALL_BACKUP_META_KEY='workRecordAllBackupMetaV1';
+const GENRYO_PROCESS_SCHEMA='workRecordGenryoRecordsV1';
+const GENRYO_STORAGE_KEY='workRecordGenryoRecordsV1';
+const GENRYO_STORAGE_META_KEY='workRecordGenryoStorageMetaV1';
 const STORE_DEFS=[
   {id:'genryo',label:'原料処理',schema:'workRecordGenryoRecordsV1',storageKey:'workRecordGenryoRecordsV1',status:'implemented'},
   {id:'koji',label:'麹',schema:'workRecordKojiRecordsV1',storageKey:'workRecordKojiRecordsV1',status:'not_implemented'},
@@ -92,6 +113,7 @@ const STORE_DEFS=[
   {id:'binzume',label:'瓶詰め',schema:'workRecordBinzumeRecordsV1',storageKey:'workRecordBinzumeRecordsV1',status:'planned'}
 ];
 let pendingImport=null;
+let pendingGenryoProcessImport=null;
 function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function nowIso(){return new Date().toISOString();}
 function compactDateTime(date=new Date()){const pad=n=>String(n).padStart(2,'0');return date.getFullYear()+pad(date.getMonth()+1)+pad(date.getDate())+'_'+pad(date.getHours())+pad(date.getMinutes())+pad(date.getSeconds());}
@@ -123,11 +145,11 @@ function buildAllBackupPayload(reason='manual_export'){
   STORE_DEFS.forEach(def=>{const count=stores[def.id].records.length;counts[def.id+'_records']=count;allRecords+=count;});
   counts.genryo_rice_cards=genryoSummary.rice_cards||0;
   counts.all_records=allRecords;
-  return {schema:ALL_BACKUP_SCHEMA,app:APP_NAME,app_version:APP_VERSION,backup_type:'all',backup_reason:reason,exported_at:exportedAt,created_at:exportedAt,brewery_years:genryoSummary.brewery_years||[],stores,counts,date_range:{genryo_first_wash_date:genryoSummary.first_wash_date||'',genryo_last_wash_date:genryoSummary.last_wash_date||''},restore_policy:{normal_use:'端末内保存は作業中キャッシュ。',main_backup:'全工程一括JSONを正本バックアップとして扱う。',restore_flow:'プレビュー→件数確認→復元前自動バックアップ→正式復元。',process_json_role:'工程別JSONは救済・移行・調査用。'}};
+  return {schema:ALL_BACKUP_SCHEMA,app:APP_NAME,app_version:APP_VERSION,backup_type:'all',backup_reason:reason,exported_at:exportedAt,created_at:exportedAt,brewery_years:genryoSummary.brewery_years||[],stores,counts,date_range:{genryo_first_wash_date:genryoSummary.first_wash_date||'',genryo_last_wash_date:genryoSummary.last_wash_date||''},restore_policy:{normal_use:'端末内保存は作業中キャッシュ。',main_backup:'全工程一括JSONを正本バックアップとして扱う。',restore_flow:'プレビュー→件数確認→復元前自動バックアップ→正式復元。',process_json_role:'工程別JSONはデータ管理内の補助機能。通常は全工程バックアップを使う。'}};
 }
 function downloadJson(payload,filename){const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();const href=a.href;a.remove();setTimeout(()=>URL.revokeObjectURL(href),1000);}
 function updateAllBackupMeta(extra){const meta={...(readMeta()||{}),...extra,updated_at:nowIso(),page:location.pathname,origin:location.origin};try{writeJsonToStorage(ALL_BACKUP_META_KEY,meta);}catch(_err){}return meta;}
-function exportAllBackup(){const payload=buildAllBackupPayload('manual_export');const by=(payload.brewery_years&&payload.brewery_years.length===1)?payload.brewery_years[0]:'multiBY';const filename=`work_record_all_backup_${by}_${compactDateTime()}.json`;downloadJson(payload,filename);updateAllBackupMeta({last_exported_at:payload.exported_at,last_export_filename:filename,last_export_counts:payload.counts,last_export_brewery_years:payload.brewery_years});document.getElementById('export-status').textContent=`全工程JSONを書き出しました。ファイル名: ${filename} / 原料処理 ${payload.counts.genryo_records}件 / 米明細 ${payload.counts.genryo_rice_cards}件。ブラウザの保存先にファイルがあるか確認してください。`;refreshDeviceStatus();}
+function exportAllBackup(){const payload=buildAllBackupPayload('manual_export');const by=(payload.brewery_years&&payload.brewery_years.length===1)?payload.brewery_years[0]:'multiBY';const filename=`work_record_all_backup_${by}_${compactDateTime()}.json`;downloadJson(payload,filename);updateAllBackupMeta({last_exported_at:payload.exported_at,last_export_filename:filename,last_export_counts:payload.counts,last_export_brewery_years:payload.brewery_years});document.getElementById('export-status').textContent=`全工程バックアップを作成しました。ファイル名: ${filename} / 原料処理 ${payload.counts.genryo_records}件 / 米明細 ${payload.counts.genryo_rice_cards}件。ブラウザの保存先にファイルがあるか確認してください。`;refreshDeviceStatus();}
 function statusLabel(status){if(status==='implemented')return '実装済み';if(status==='not_implemented')return '未実装';if(status==='planned')return '計画中';return status||'';}
 function refreshDeviceStatus(){const ok=storageAvailable();const payload=buildAllBackupPayload('status_preview');const meta=readMeta();const latest=latestUpdatedAt(Object.values(payload.stores).flatMap(store=>store.records||[]));const backupAt=meta?.last_exported_at||'';const backupState=backupAt?'外部バックアップ作成操作あり':'外部バックアップ未作成';document.getElementById('device-status').innerHTML=`端末内保存 ${ok?'OK':'NG'} / ${escapeHtml(backupState)} / 最新更新 ${escapeHtml(formatDateTime(latest))}`;
   const genryo=payload.stores.genryo.summary;
@@ -137,16 +159,27 @@ function refreshDeviceStatus(){const ok=storageAvailable();const payload=buildAl
 function summarizeBackupPayload(payload){const stores=payload?.stores&&typeof payload.stores==='object'?payload.stores:{};const rows=STORE_DEFS.map(def=>{const store=stores[def.id]&&typeof stores[def.id]==='object'?stores[def.id]:{};const records=Array.isArray(store.records)?store.records:[];const summary=store.summary&&typeof store.summary==='object'?store.summary:{};return {id:def.id,label:store.label||def.label,schema:store.schema||def.schema,status:store.status||def.status,count:records.length,riceCards:def.id==='genryo'?(summary.rice_cards??genryoRiceCards(records)):'',latest:summary.latest_updated_at||latestUpdatedAt(records),records};});
   const genryo=rows.find(row=>row.id==='genryo');const bys=uniqueValues([...(Array.isArray(payload?.brewery_years)?payload.brewery_years:[]),...((genryo?.records||[]).map(record=>byFromDate(record?.wash_date)))]).sort();return {schema:payload?.schema||'',app:payload?.app||'',app_version:payload?.app_version||'',backup_type:payload?.backup_type||'',exported_at:payload?.exported_at||payload?.created_at||'',brewery_years:bys,rows};}
 function renderPreview(payload,fileName){const summary=summarizeBackupPayload(payload);const valid=summary.schema===ALL_BACKUP_SCHEMA&&summary.backup_type==='all'&&payload&&typeof payload==='object';const rowsHtml=summary.rows.map(row=>`<tr><td>${escapeHtml(row.label)}</td><td>${escapeHtml(row.schema)}</td><td>${escapeHtml(statusLabel(row.status))}</td><td>${escapeHtml(row.count)}</td><td>${escapeHtml(row.riceCards)}</td><td>${escapeHtml(formatDateTime(row.latest))}</td></tr>`).join('');
-  document.getElementById('import-preview').innerHTML=`<h3>読込前プレビュー</h3><div class="check-list"><div class="check-item"><b>ファイル</b>${escapeHtml(fileName||'')}</div><div class="check-item"><b>schema</b><span class="status ${valid?'ok':'warn'}">${escapeHtml(summary.schema||'不明')}</span></div><div class="check-item"><b>app</b>${escapeHtml(summary.app||'不明')} / v${escapeHtml(summary.app_version||'不明')}</div><div class="check-item"><b>BY</b>${escapeHtml(summary.brewery_years.join(' / ')||'未判定')}</div><div class="check-item"><b>作成日時</b>${escapeHtml(formatDateTime(summary.exported_at))}</div></div><div class="data-table-wrap"><table class="data-table"><thead><tr><th>工程</th><th>schema</th><th>状態</th><th>記録件数</th><th>米明細</th><th>最終更新</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>${valid?'':'<div class="data-danger">このファイルは全工程一括JSONとして復元できません。</div>'}`;
+  document.getElementById('import-preview').innerHTML=`<h3>読み込み前プレビュー</h3><div class="check-list"><div class="check-item"><b>ファイル</b>${escapeHtml(fileName||'')}</div><div class="check-item"><b>schema</b><span class="status ${valid?'ok':'warn'}">${escapeHtml(summary.schema||'不明')}</span></div><div class="check-item"><b>app</b>${escapeHtml(summary.app||'不明')} / v${escapeHtml(summary.app_version||'不明')}</div><div class="check-item"><b>BY</b>${escapeHtml(summary.brewery_years.join(' / ')||'未判定')}</div><div class="check-item"><b>作成日時</b>${escapeHtml(formatDateTime(summary.exported_at))}</div></div><div class="data-table-wrap"><table class="data-table"><thead><tr><th>工程</th><th>schema</th><th>状態</th><th>記録件数</th><th>米明細</th><th>最終更新</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>${valid?'':'<div class="data-danger">このファイルは全工程一括JSONとして復元できません。</div>'}`;
   if(valid)renderRestorePanel(summary);else document.getElementById('restore-panel').hidden=true;
 }
 function renderRestorePanel(summary){const checks=summary.rows.map(row=>{const canRestore=row.id==='genryo'&&row.schema==='workRecordGenryoRecordsV1';const disabled=canRestore?'':' disabled';const checked=canRestore?' checked':'';const note=canRestore?'原料処理の端末内保存へ復元します。':'この版では未実装工程のため、プレビューのみです。';return `<label class="store-check"><input type="checkbox" class="restore-store" value="${escapeHtml(row.id)}"${checked}${disabled}><span><b>${escapeHtml(row.label)}</b> ${escapeHtml(row.count)}件<small>${escapeHtml(note)}</small></span></label>`;}).join('');
-  const panel=document.getElementById('restore-panel');panel.hidden=false;panel.innerHTML=`<h3>復元対象の選択</h3><div class="data-warning">復元を実行すると、選択した工程の端末内保存を上書きします。実行前に現在の端末内データを自動で全工程JSONとして書き出します。</div><div class="store-check-list">${checks}</div><div class="actions split-actions filter-actions"><button class="btn danger" type="button" onclick="restoreSelectedStores()">選択した工程を復元</button></div>`;
+  const panel=document.getElementById('restore-panel');panel.hidden=false;panel.innerHTML=`<h3>復元対象の選択</h3><div class="data-warning">復元を実行すると、選択した工程の端末内保存を上書きします。実行前に現在の端末内データを自動で全工程JSONとして作成します。</div><div class="store-check-list">${checks}</div><div class="actions split-actions filter-actions"><button class="btn danger" type="button" onclick="restoreSelectedStores()">選択した工程を復元</button></div>`;
 }
-function previewAllBackupFile(file){if(!file)return;const status=document.getElementById('import-status');status.textContent='読込中';const reader=new FileReader();reader.onload=()=>{try{const parsed=JSON.parse(String(reader.result||''));pendingImport={payload:parsed,fileName:file.name||''};renderPreview(parsed,file.name||'');status.textContent='プレビューを表示しました。内容確認後に復元対象を選んでください。';}catch(err){pendingImport=null;document.getElementById('restore-panel').hidden=true;document.getElementById('import-preview').innerHTML='<div class="data-danger">JSONを読めませんでした。'+escapeHtml(err&&err.message?err.message:String(err))+'</div>';status.textContent='読込失敗';}finally{const input=document.getElementById('all-backup-file');if(input)input.value='';}};reader.readAsText(file,'utf-8');}
-function clearImportPreview(){pendingImport=null;document.getElementById('import-preview').textContent='全工程一括JSONを選択すると、ここに内容確認を表示します。';document.getElementById('restore-panel').hidden=true;document.getElementById('restore-panel').innerHTML='';document.getElementById('import-status').textContent='';}
-function restoreSelectedStores(){if(!pendingImport||!pendingImport.payload){alert('復元する全工程JSONが選択されていません。');return;}const selected=[...document.querySelectorAll('.restore-store:checked')].map(input=>input.value);if(!selected.length){alert('復元対象工程を選択してください。');return;}const payload=pendingImport.payload;if(payload.schema!==ALL_BACKUP_SCHEMA||payload.backup_type!=='all'){alert('全工程一括JSONではありません。');return;}if(!confirm(`選択した工程を端末内保存へ復元します。\n対象: ${selected.join(', ')}\n\n実行前に現在の端末内データを自動バックアップします。`))return;try{const before=buildAllBackupPayload('before_restore_auto_backup');const beforeName=`work_record_all_backup_before_restore_${compactDateTime()}.json`;downloadJson(before,beforeName);let restored=[];selected.forEach(id=>{if(id==='genryo'){const store=payload.stores&&payload.stores.genryo;const records=Array.isArray(store?.records)?store.records:[];writeJsonToStorage('workRecordGenryoRecordsV1',records);writeJsonToStorage('workRecordGenryoStorageMetaV1',{last_action:'全工程JSONから復元',last_count:records.length,last_at:nowIso(),write_verified:true,verified_count:records.length,verify_state:'restored_from_all_backup',import_file:pendingImport.fileName,page:location.pathname,origin:location.origin});const verify=readRecords('workRecordGenryoRecordsV1');if(verify.length!==records.length)throw new Error(`原料処理の復元確認NG: 期待 ${records.length}件 / 実際 ${verify.length}件`);restored.push(`原料処理 ${records.length}件`);}});updateAllBackupMeta({last_imported_at:nowIso(),last_import_filename:pendingImport.fileName,last_pre_restore_backup_filename:beforeName,last_restored_stores:selected});document.getElementById('import-status').textContent=`復元前自動バックアップを書き出した後、${restored.join(' / ')}を復元しました。ファイル保存先に ${beforeName} があるか確認してください。`;refreshDeviceStatus();}catch(err){alert('復元できませんでした。'+(err&&err.message?'\n'+err.message:''));}}
-document.addEventListener('DOMContentLoaded',refreshDeviceStatus);
+function previewAllBackupFile(file){if(!file)return;const status=document.getElementById('import-status');status.textContent='読み込み中';const reader=new FileReader();reader.onload=()=>{try{const parsed=JSON.parse(String(reader.result||''));pendingImport={payload:parsed,fileName:file.name||''};renderPreview(parsed,file.name||'');status.textContent='プレビューを表示しました。内容確認後に復元対象を選んでください。';}catch(err){pendingImport=null;document.getElementById('restore-panel').hidden=true;document.getElementById('import-preview').innerHTML='<div class="data-danger">JSONを読めませんでした。'+escapeHtml(err&&err.message?err.message:String(err))+'</div>';status.textContent='読み込み失敗';}finally{const input=document.getElementById('all-backup-file');if(input)input.value='';}};reader.readAsText(file,'utf-8');}
+function clearImportPreview(){pendingImport=null;document.getElementById('import-preview').textContent='全工程バックアップJSONを選択すると、ここに内容確認を表示します。';document.getElementById('restore-panel').hidden=true;document.getElementById('restore-panel').innerHTML='';document.getElementById('import-status').textContent='';}
+function restoreSelectedStores(){if(!pendingImport||!pendingImport.payload){alert('復元する全工程JSONが選択されていません。');return;}const selected=[...document.querySelectorAll('.restore-store:checked')].map(input=>input.value);if(!selected.length){alert('復元対象工程を選択してください。');return;}const payload=pendingImport.payload;if(payload.schema!==ALL_BACKUP_SCHEMA||payload.backup_type!=='all'){alert('全工程一括JSONではありません。');return;}if(!confirm(`選択した工程を端末内保存へ復元します。\n対象: ${selected.join(', ')}\n\n実行前に現在の端末内データを自動バックアップします。`))return;try{const before=buildAllBackupPayload('before_restore_auto_backup');const beforeName=`work_record_all_backup_before_restore_${compactDateTime()}.json`;downloadJson(before,beforeName);let restored=[];selected.forEach(id=>{if(id==='genryo'){const store=payload.stores&&payload.stores.genryo;const records=Array.isArray(store?.records)?store.records:[];writeJsonToStorage('workRecordGenryoRecordsV1',records);writeJsonToStorage('workRecordGenryoStorageMetaV1',{last_action:'全工程JSONから復元',last_count:records.length,last_at:nowIso(),write_verified:true,verified_count:records.length,verify_state:'restored_from_all_backup',import_file:pendingImport.fileName,page:location.pathname,origin:location.origin});const verify=readRecords('workRecordGenryoRecordsV1');if(verify.length!==records.length)throw new Error(`原料処理の復元確認NG: 期待 ${records.length}件 / 実際 ${verify.length}件`);restored.push(`原料処理 ${records.length}件`);}});updateAllBackupMeta({last_imported_at:nowIso(),last_import_filename:pendingImport.fileName,last_pre_restore_backup_filename:beforeName,last_restored_stores:selected});document.getElementById('import-status').textContent=`復元前自動バックアップを作成した後、${restored.join(' / ')}を復元しました。ブラウザの保存先に ${beforeName} があるか確認してください。`;refreshDeviceStatus();}catch(err){alert('復元できませんでした。'+(err&&err.message?'\n'+err.message:''));}}
+
+function recordDateValue(record){return String(record?.wash_date||record?.created_at||record?.updated_at||'');}
+function processRecordSort(a,b){const da=recordDateValue(a);const db=recordDateValue(b);if(da!==db)return db.localeCompare(da);return String(b?.updated_at||b?.created_at||'').localeCompare(String(a?.updated_at||a?.created_at||''));}
+function normalizeGenryoProcessPayload(parsed){if(Array.isArray(parsed))return parsed;if(parsed&&Array.isArray(parsed.records))return parsed.records;if(parsed&&parsed.stores&&Array.isArray(parsed.stores.genryo?.records))return parsed.stores.genryo.records;return null;}
+function newerRecord(a,b){return String(a?.updated_at||a?.created_at||'')>=String(b?.updated_at||b?.created_at||'');}
+function summarizeGenryoMerge(incoming,current){const map=new Map();current.forEach(record=>{if(record&&record.record_id)map.set(record.record_id,record);});let added=0,updated=0,ignored=0;incoming.forEach(record=>{if(!record||typeof record!=='object'){ignored++;return;}const next={...record};if(!next.record_id)next.record_id='genryo_import_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);const old=map.get(next.record_id);if(!old){map.set(next.record_id,next);added++;}else if(newerRecord(next,old)){map.set(next.record_id,next);updated++;}else{ignored++;}});return {records:[...map.values()].sort(processRecordSort),added,updated,ignored,incomingCount:incoming.length,currentCount:current.length};}
+function exportGenryoProcessBackup(){const records=readRecords(GENRYO_STORAGE_KEY);const payload={schema:GENRYO_PROCESS_SCHEMA,backup_type:'process',process:'genryo',exported_at:nowIso(),created_at:nowIso(),records,summary:summarizeGenryo(records),note:'原料処理だけの補助バックアップ。通常の正本バックアップは全工程バックアップを使う。'};const filename=`work_record_genryo_process_backup_${compactDateTime()}.json`;downloadJson(payload,filename);writeJsonToStorage(GENRYO_STORAGE_META_KEY,{last_action:'原料処理だけバックアップ作成',last_count:records.length,last_at:nowIso(),write_verified:true,verified_count:records.length,verify_state:'process_backup_exported',export_file:filename,page:location.pathname,origin:location.origin});const status=document.getElementById('genryo-process-status');if(status)status.textContent=`原料処理だけバックアップを作成しました。ファイル名: ${filename} / 原料処理 ${records.length}件。通常の正本は全工程バックアップです。`;refreshDeviceStatus();}
+function previewGenryoProcessFile(file){if(!file)return;const status=document.getElementById('genryo-process-status');if(status)status.textContent='原料処理だけJSONを読み込み中';const reader=new FileReader();reader.onload=()=>{try{const parsed=JSON.parse(String(reader.result||''));const incoming=normalizeGenryoProcessPayload(parsed);if(!incoming)throw new Error('原料処理のrecordsが見つかりません。');const current=readRecords(GENRYO_STORAGE_KEY);const merge=summarizeGenryoMerge(incoming,current);pendingGenryoProcessImport={fileName:file.name||'',incoming,merge};const bys=summarizeGenryo(incoming).brewery_years||[];document.getElementById('genryo-process-preview').innerHTML=`<h3>原料処理だけ読み込み前プレビュー</h3><div class="check-list"><div class="check-item"><b>ファイル</b>${escapeHtml(file.name||'')}</div><div class="check-item"><b>schema</b>${escapeHtml(parsed?.schema||'配列または不明')}</div><div class="check-item"><b>BY</b>${escapeHtml(bys.join(' / ')||'未判定')}</div><div class="check-item"><b>現在</b>${escapeHtml(current.length)}件</div><div class="check-item"><b>読み込み</b>${escapeHtml(incoming.length)}件</div><div class="check-item"><b>反映予定</b>追加 ${escapeHtml(merge.added)}件 / 更新 ${escapeHtml(merge.updated)}件 / 無視 ${escapeHtml(merge.ignored)}件 / 反映後 ${escapeHtml(merge.records.length)}件</div></div><div class="data-warning">反映すると原料処理の端末内保存を更新します。実行前に現在の全工程バックアップを自動作成します。</div><div class="actions split-actions filter-actions"><button class="btn danger" type="button" onclick="applyGenryoProcessImport()">原料処理だけ読み込みを反映</button></div>`;if(status)status.textContent='プレビューを表示しました。内容確認後に反映してください。';}catch(err){pendingGenryoProcessImport=null;document.getElementById('genryo-process-preview').innerHTML='<div class="data-danger">原料処理だけJSONを読めませんでした。'+escapeHtml(err&&err.message?err.message:String(err))+'</div>';if(status)status.textContent='読み込み失敗';}finally{const input=document.getElementById('genryo-process-file');if(input)input.value='';}};reader.readAsText(file,'utf-8');}
+function clearGenryoProcessPreview(){pendingGenryoProcessImport=null;const preview=document.getElementById('genryo-process-preview');if(preview)preview.textContent='原料処理だけJSONを選択すると、ここに内容確認を表示します。';const status=document.getElementById('genryo-process-status');if(status)status.textContent='';}
+function applyGenryoProcessImport(){if(!pendingGenryoProcessImport){alert('反映する原料処理だけJSONが選択されていません。');return;}const merge=pendingGenryoProcessImport.merge;if(!confirm(`原料処理だけJSONを端末内保存へ反映します。\n追加 ${merge.added}件 / 更新 ${merge.updated}件 / 無視 ${merge.ignored}件 / 反映後 ${merge.records.length}件\n\n実行前に現在の全工程バックアップを自動作成します。`))return;try{const before=buildAllBackupPayload('before_genryo_process_import_auto_backup');const beforeName=`work_record_all_backup_before_genryo_process_import_${compactDateTime()}.json`;downloadJson(before,beforeName);writeJsonToStorage(GENRYO_STORAGE_KEY,merge.records);const verify=readRecords(GENRYO_STORAGE_KEY);if(verify.length!==merge.records.length)throw new Error(`保存確認NG: 期待 ${merge.records.length}件 / 実際 ${verify.length}件`);writeJsonToStorage(GENRYO_STORAGE_META_KEY,{last_action:'原料処理だけJSON読み込み',last_count:merge.records.length,last_at:nowIso(),write_verified:true,verified_count:verify.length,verify_state:'process_import_merged',import_file:pendingGenryoProcessImport.fileName,import_added:merge.added,import_updated:merge.updated,import_ignored:merge.ignored,incoming_count:merge.incomingCount,page:location.pathname,origin:location.origin});updateAllBackupMeta({last_genryo_process_imported_at:nowIso(),last_genryo_process_import_filename:pendingGenryoProcessImport.fileName,last_pre_process_import_backup_filename:beforeName});const status=document.getElementById('genryo-process-status');if(status)status.textContent=`復元前自動バックアップを作成した後、原料処理だけJSONを反映しました。追加 ${merge.added}件 / 更新 ${merge.updated}件 / 無視 ${merge.ignored}件 / 保存確認OK ${verify.length}件。`;pendingGenryoProcessImport=null;refreshDeviceStatus();}catch(err){alert('原料処理だけJSONを反映できませんでした。'+(err&&err.message?'\n'+err.message:''));}}
+
+document.addEventListener('DOMContentLoaded',()=>{refreshDeviceStatus();if(window.__workRecordBindFolds)window.__workRecordBindFolds();});
 </script>
   <script src="assets/ui.js?v=20260612genryolistio" defer></script>
 </body>

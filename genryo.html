@@ -24,7 +24,7 @@
           <button class="btn" type="button" onclick="runGenryoStorageSelfTest()">端末内保存テスト</button>
           <button class="btn" type="button" onclick="copyGenryoStorageDiagnosis()">診断情報をコピー</button>
         </div>
-        <p class="empty-note">この表示は、この端末・このブラウザ・このURLに保存されている原料処理記録の確認用です。別端末の記録は自動同期されません。JSON読込後は、保存確認OK・件数一致を確認してください。</p>
+        <p class="empty-note">この表示は、この端末・このブラウザ・このURLに保存されている原料処理記録の確認用です。別端末の記録は自動同期されません。データ管理でバックアップを読み込んだ後は、保存確認OK・件数一致を確認してください。</p>
       </section>
       <section class="input-block">
         <h2>表示条件</h2>
@@ -47,18 +47,10 @@
             <a class="btn primary" href="senmai.html">原料処理を追加</a>
             <a class="btn" href="reports.html#genryo-output-trial">表示条件で出力へ</a>
           </div>
-          <details class="common-info-toggle genryo-backup-details" data-fold data-fold-closed="工程別JSON（救済・移行用）" data-fold-open="工程別JSON（救済・移行用）">
-            <summary><span>工程別JSON（救済・移行用）</span><b>開く ▼</b></summary>
-            <div class="genryo-backup-panel">
-              <p>通常の正本バックアップは、データ管理の全工程一括JSONを使います。ここは原料処理だけを切り出す救済・移行・調査用です。</p>
-              <div class="genryo-action-row"><a class="btn primary" href="data.html">全工程バックアップへ</a></div>
-              <div class="genryo-action-row">
-                <button class="btn" type="button" onclick="exportGenryoJson()">原料処理JSON書き出し（救済用）</button>
-                <button class="btn" type="button" onclick="document.getElementById('genryo-import-file').click()">原料処理JSON読込（移行用）</button>
-              </div>
-              <input id="genryo-import-file" type="file" accept="application/json,.json" hidden onchange="importGenryoJson(this.files&&this.files[0])">
-            </div>
-          </details>
+          <div class="genryo-action-row">
+            <a class="btn" href="data.html">データ管理へ</a>
+          </div>
+          <p class="empty-note">原料処理一覧は、記録の確認・編集・端末内保存を扱います。JSONバックアップの作成・読み込み・復元はデータ管理で行います。</p>
           <details class="common-info-toggle danger-details" data-fold data-fold-closed="全件削除（危険操作）" data-fold-open="全件削除（危険操作）">
             <summary><span>全件削除（危険操作）</span><b>開く ▼</b></summary>
             <div class="danger-panel">
@@ -74,7 +66,6 @@
   </main>
 <script>
 const GENRYO_STORAGE_KEY='workRecordGenryoRecordsV1';
-const GENRYO_EXPORT_SCHEMA='workRecordGenryoRecordsV1';
 const GENRYO_STORAGE_META_KEY='workRecordGenryoStorageMetaV1';
 const GENRYO_FILTER_STORAGE_KEY='workRecordGenryoListFiltersV1';
 const GENRYO_STORAGE_PROBE_KEY='workRecordGenryoStorageProbeV1';
@@ -142,12 +133,9 @@ function dailyRecordBlockHtml(record,contextExpanded=false){const cards=cardsFor
 function dailySummaryHtml(records,contextExpanded=false){const groups=new Map();records.forEach(record=>{const key=dailyGroupKey(record);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(record);});const direction=getFilters().sortOrder;const sorted=[...groups.entries()].sort((a,b)=>compareDateText(a[0],b[0],direction));return sorted.map(([date,recs])=>{let total=0;let cardCount=0;recs.forEach(record=>{const cards=cardsForDisplay(record,contextExpanded);cardCount+=cards.length;cards.forEach(card=>{total+=cardKgValue(card);});});return `<section class="daily-group-block"><div class="daily-group-head"><div><h3>${escapeHtml(date)} ${dailyGroupTitle()}</h3><span class="card-meta">${recs.length}履歴 / ${cardCount}用途 / 表示分合計 ${total.toFixed(1)} kg</span></div></div><div class="daily-record-list">${recs.map(record=>dailyRecordBlockHtml(record,contextExpanded)).join('')}</div></section>`;}).join('');}
 function renderRecords(records,contextExpanded){return dailySummaryHtml(records,contextExpanded);}
 function loadGenryoList(){const out=document.getElementById('genryo-record-list');if(!out)return;saveFilterState();const all=safeReadRecords().sort(displayRecordSort);refreshStorageStatus(all);const matched=all.filter(recordMatches);const contextual=contextRecords(all,matched);const shown=limitedRecords(contextual.records);out.innerHTML=shown.length?renderRecords(shown,contextual.contextExpanded):'<div class="empty-note">保存記録はありません。</div>';const status=document.getElementById('list-status');if(status){status.textContent=`日別・履歴別明細 / ${contextual.contextLabel} / 表示 ${shown.length}件 / 該当 ${matched.length}件 / 保存 ${all.length}件`;}if(window.__workRecordBindFolds)window.__workRecordBindFolds();}
-function exportGenryoJson(){const records=safeReadRecords();const payload={schema:GENRYO_EXPORT_SCHEMA,exported_at:new Date().toISOString(),records};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const ymd=new Date().toISOString().slice(0,10).replace(/-/g,'');const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`work_record_genryo_${ymd}.json`;document.body.appendChild(a);a.click();const href=a.href;a.remove();setTimeout(()=>URL.revokeObjectURL(href),1000);updateStorageMeta('JSON書き出し',records);refreshStorageStatus(records);const status=document.getElementById('import-export-status');if(status)status.textContent=`表示条件に関係なく、全件 ${records.length}件を原料処理JSON（救済用）として書き出しました`;}
-function normalizeImportPayload(parsed){if(Array.isArray(parsed))return parsed;if(parsed&&Array.isArray(parsed.records))return parsed.records;return null;}
-function newer(a,b){return String(a.updated_at||a.created_at||'')>=String(b.updated_at||b.created_at||'');}
+
 function deleteGenryoRecord(encodedId){const recordId=decodeURIComponent(encodedId||'');if(!recordId)return;const records=safeReadRecords();const target=records.find(record=>record&&record.record_id===recordId);if(!target)return;const label=recordLabel(target);if(!confirm(`この原料処理記録を削除します。\n${label}\n\n削除前に必要ならデータ管理で全工程JSONバックアップを作成してください。`))return;const next=records.filter(record=>!(record&&record.record_id===recordId));if(!safeWriteRecords(next,'1件削除')){alert('削除できませんでした。');return;}const status=document.getElementById('import-export-status');if(status)status.textContent=`1件削除しました。保存 ${next.length}件`;loadGenryoList();}
 function deleteAllGenryoRecords(){const records=safeReadRecords();const count=records.length;const status=document.getElementById('import-export-status');if(!count){if(status)status.textContent='削除対象の原料処理保存記録はありません。';return;}if(!confirm(`原料処理の保存記録 ${count}件を全件削除します。\n\n必要な場合は、先にデータ管理で全工程JSONバックアップを作成してください。\nこの操作は元に戻せません。`))return;if(!confirm(`最終確認です。\n原料処理の保存記録 ${count}件を全件削除してよろしいですか？`))return;if(!safeWriteRecords([],'全件削除')){alert('全件削除できませんでした。');return;}if(status)status.textContent=`原料処理の保存記録 ${count}件を全件削除しました。`;loadGenryoList();}
-function importGenryoJson(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const parsed=JSON.parse(String(reader.result||''));const incoming=normalizeImportPayload(parsed);if(!incoming)throw new Error('records not found');const current=safeReadRecords();const map=new Map();current.forEach(record=>{if(record&&record.record_id)map.set(record.record_id,record);});let added=0,updated=0,ignored=0;incoming.forEach(record=>{if(!record||typeof record!=='object'){ignored++;return;}if(!record.record_id)record.record_id='genryo_import_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);const old=map.get(record.record_id);if(!old){map.set(record.record_id,record);added++;}else if(newer(record,old)){map.set(record.record_id,record);updated++;}else{ignored++;}});const merged=[...map.values()].sort(recordSort);const writeCheck=verifyWriteRecords(merged,'JSON読込',{import_file:file.name||'',import_added:added,import_updated:updated,import_ignored:ignored,incoming_count:incoming.length});if(!writeCheck.ok)throw new Error(`保存確認NG: 期待 ${writeCheck.expected_count}件 / 実際 ${writeCheck.actual_count}件 / ${writeCheck.message}`);const status=document.getElementById('import-export-status');if(status)status.textContent=`読込 ${added}件追加 / ${updated}件更新 / ${ignored}件無視 / 保存確認OK ${writeCheck.actual_count}件。ページ更新→ブラウザ再起動→PC再起動の順に残るか確認してください。`;loadGenryoList();}catch(err){alert('JSONを読み込めませんでした。'+(err&&err.message?'\n'+err.message:''));}finally{const input=document.getElementById('genryo-import-file');if(input)input.value='';}};reader.readAsText(file,'utf-8');}
 window.addEventListener('DOMContentLoaded',()=>{restoreFilterState();loadGenryoList();});
 </script>
   <script src="assets/ui.js?v=20260612genryohistoryrows" defer></script>

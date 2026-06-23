@@ -15,15 +15,14 @@
   <main class="tool-body">
     <section class="screen-lead">
       <h1>出力・確認</h1>
-      <p>復元用の正本バックアップは、データ管理の全工程一括JSONで扱います。</p>
+      <p>この画面は、人が読む資料を作る画面です。復元用バックアップはデータ管理で作成します。</p>
       <div class="actions"><a class="btn primary" href="data.html">データ管理へ</a></div>
     </section>
     <div class="wrapper wide">
       <section id="genryo-output-trial" class="input-block">
         <h2>原料処理出力 試作</h2>
         <div class="check-list">
-          <div class="check-item"><b>JSON</b><span class="status ok">復元用</span> アプリへ戻すための正本バックアップ。人間向け帳票とは別に保存する。</div>
-          <div class="check-item"><b>Excel</b><span class="status draft">帳票＋集計</span> 日別帳票、米明細、集計表、出力情報を分けて出力。Excel上での追記・計算は可。ただしアプリへ戻す正本にはしない。</div>
+          <div class="check-item"><b>Excel</b><span class="status ok">外部出力</span> 日別帳票、米明細、集計表、出力情報を分けて作成します。Excel上での追記・計算は可。ただしアプリへ戻す正本にはしません。</div>
           <div class="check-item"><b>印刷用HTML / PDF</b><span class="status draft">日別帳票</span> 人間が読む・印刷する・PDF保存するための帳票。Excelと同じ形にはしない。</div>
         </div>
         <div class="empty-note">日付基準は原料処理一覧と同じく洗米日固定です。蒸し実施日は帳票内で確認します。</div>
@@ -50,13 +49,13 @@
         <div id="report-output-status" class="list-status"></div>
       </section>
       <section class="input-block">
-        <h2>出力候補</h2>
+        <h2>人間用資料の候補</h2>
         <div class="check-list">
-          <div class="check-item"><b>JSON</b><span class="status ok">採用</span> アプリ復元用。人間が日常編集する形式にはしない。</div>
-          <div class="check-item"><b>Excel</b><span class="status draft">帳票＋集計</span> 読むための帳票と、配分確認・総米確認に使う集計表を分ける。</div>
-          <div class="check-item"><b>PDF / 印刷用HTML</b><span class="status draft">保存用</span> 国税確認・社内確認で人間が読む主役。PDF化はブラウザの印刷機能を使う。</div>
-          <div class="check-item"><b>CSV / TSV</b><span class="status draft">後回し</span> 外部連携用候補。事務方ソフト連携方針が固まってから扱う。</div>
+          <div class="check-item"><b>Excel</b><span class="status ok">外部出力</span> 集計・追記・共有に使う人間用資料。アプリへの復元正本にはしません。</div>
+          <div class="check-item"><b>CSV / TSV</b><span class="status draft">後回し</span> Googleスプレッドシートや外部集計へ渡すための候補。</div>
+          <div class="check-item"><b>印刷用HTML / PDF</b><span class="status ok">印刷</span> 税務調査・社内確認で人間が読む主役。</div>
         </div>
+        <p class="empty-note">復元用バックアップはデータ管理で作成します。保存済みExcelやPDFを編集しても、アプリ内データは変わりません。</p>
       </section>
     </div>
   </main>
@@ -101,7 +100,7 @@ function clearGenryoOutputFilters(){['genryo-output-date-from','genryo-output-da
 function dailySheetRows(records,label){const rows=[];const sum=summarize(records);rows.push(['原料処理 日別帳票']);rows.push(['出力条件',label||'']);rows.push(['出力日時',formatDateTime(new Date().toISOString())]);rows.push(['記録件数',sum.recordCount,'米明細件数',sum.cardCount,'白米合計kg',sum.totalKg]);rows.push([]);records.forEach((record,index)=>{const s=record.steam||{};const cards=Array.isArray(record.rice_cards)?record.rice_cards:[];rows.push([`No.${index+1}`,`洗米日 ${formatDate(record.wash_date)}`,`蒸し実施日 ${formatDate(s.actual_date)}`,`白米合計 ${formatKg(totalKg(cards))}kg`]);rows.push(['用途','仕込号','品種 精米','白米kg','洗米','浸漬','水温℃','検蒸順','備考']);cards.forEach(card=>rows.push([card.usage_kind||'',card.shikomi_no||'',riceName(card),kgValue(card),card.wash_start||'',soakDisplay(card),numOrBlank(card.water_temp),numOrBlank(card.kenjo_order),card.note||'']));rows.push(['翌日蒸し','蒸気入れ',s.steam_in_time||'','沸騰',s.boil_time||'','蒸気抜け',s.steam_through_time||'','蒸し終了',s.steam_end_time||'']);rows.push(['蒸し時間 分',numOrBlank(s.steaming_time_min),'蒸し備考',s.note||'']);const pressureRows=steamPressureDisplayRows(s);if(pressureRows.length){rows.push(['蒸気圧','区間','分','生蒸気 MPa','乾燥蒸気 MPa']);pressureRows.forEach(row=>rows.push(['',row.label,row.minutes,row.raw,row.dry]));}rows.push([]);});return rows;}
 function detailSheetRows(records){const rows=[['出力No.','洗米日','蒸し実施日','用途分類','仕込号','米品種','精米%','白米kg','洗米開始','浸漬開始','浸漬終了','浸漬時間','浸漬分','水温℃','検蒸順','備考']];records.forEach((record,index)=>{const s=record.steam||{};(record.rice_cards||[]).forEach(card=>rows.push([index+1,formatDate(record.wash_date),formatDate(s.actual_date),card.usage_kind||'',card.shikomi_no||'',card.rice_variety||'',numOrBlank(card.rice_polish),kgValue(card),card.wash_start||'',card.soak_start||'',card.soak_end||'',card.soak_duration||'',soakMinutes(card),numOrBlank(card.water_temp),numOrBlank(card.kenjo_order),card.note||'']));});return rows;}
 function aggregateSheetRows(records){const sum=summarize(records);const rows=[];rows.push(['原料処理 集計表']);rows.push(['記録件数',sum.recordCount,'米明細件数',sum.cardCount,'白米合計kg',sum.totalKg]);rows.push([]);rows.push(['用途別集計']);rows.push(['用途','白米kg','総米比率%']);orderedUsageKeys(sum.usage).forEach(key=>{const kg=sum.usage.get(key)||0;rows.push([key,kg,sum.totalKg?kg/sum.totalKg*100:0]);});rows.push([]);rows.push(['仕込号別総米']);rows.push(['仕込号','白米kg']);orderedShikomiKeys(sum.shikomi).forEach(key=>rows.push([key,sum.shikomi.get(key)||0]));rows.push([]);rows.push(['仕込号×用途別集計']);const usageKeys=USAGE_ORDER.filter(key=>[...sum.shikomiUsage.values()].some(map=>map.has(key)));const restUsage=[...new Set([...sum.shikomiUsage.values()].flatMap(map=>[...map.keys()]))].filter(key=>!usageKeys.includes(key)).sort((a,b)=>String(a).localeCompare(String(b),'ja'));const allUsageKeys=[...usageKeys,...restUsage];rows.push(['仕込号',...allUsageKeys,'総米kg']);orderedShikomiKeys(sum.shikomiUsage).forEach(shikomi=>{const map=sum.shikomiUsage.get(shikomi)||new Map();const vals=allUsageKeys.map(key=>map.get(key)||0);rows.push([shikomi,...vals,vals.reduce((a,b)=>a+b,0)]);});rows.push([]);rows.push(['品種・精米別集計']);rows.push(['品種 精米','白米kg']);[...sum.variety.keys()].sort((a,b)=>String(a).localeCompare(String(b),'ja')).forEach(key=>rows.push([key,sum.variety.get(key)||0]));return rows;}
-function outputInfoRows(records,label){const sum=summarize(records);return [['項目','内容'],['出力対象','原料処理'],['出力条件',label||''],['日付基準','洗米日'],['出力日時',formatDateTime(new Date().toISOString())],['記録件数',sum.recordCount],['米明細件数',sum.cardCount],['白米合計kg',formatKg(sum.totalKg)],['保存方針','7年保存では、復元用JSON・人間向けPDF/HTML・Excel帳票をセットで保存する想定。'],['JSON','アプリ復元用の正本バックアップ。人間が読む主役ではない。'],['Excel','日別帳票・米明細・集計表・出力情報を含む。Excel上での追記や計算は可能。ただしアプリへ戻す正本にはしない。'],['印刷用HTML/PDF','税務調査・社内確認で人間が読む主役。PDF化はブラウザ印刷機能を使用。'],['編集ルール','保存済みHTML/PDF/Excelを直してもアプリ内データは変わらない。正式修正はツール上で行い、再出力する。']];}
+function outputInfoRows(records,label){const sum=summarize(records);return [['項目','内容'],['出力対象','原料処理'],['出力条件',label||''],['日付基準','洗米日'],['出力日時',formatDateTime(new Date().toISOString())],['記録件数',sum.recordCount],['米明細件数',sum.cardCount],['白米合計kg',formatKg(sum.totalKg)],['保存方針','このファイルは人間用資料です。復元用バックアップはデータ管理で別に作成します。'],['Excel','日別帳票・米明細・集計表・出力情報を含む。Excel上での追記や計算は可能。ただしアプリへ戻す正本にはしない。'],['印刷用HTML/PDF','税務調査・社内確認で人間が読む主役。PDF化はブラウザ印刷機能を使用。'],['編集ルール','保存済みHTML/PDF/Excelを直してもアプリ内データは変わらない。正式修正はツール上で行い、再出力する。']];}
 function buildGenryoSheets(records,label){return [{name:'1_日別帳票',rows:dailySheetRows(records,label)},{name:'2_米明細',rows:detailSheetRows(records)},{name:'3_集計表',rows:aggregateSheetRows(records)},{name:'4_出力情報',rows:outputInfoRows(records,label)}];}
 function colName(index){let name='';let n=index+1;while(n>0){const rem=(n-1)%26;name=String.fromCharCode(65+rem)+name;n=Math.floor((n-1)/26);}return name;}
 function xlsxColCount(sheetName,rows){if(sheetName==='1_日別帳票')return 9;return rows.reduce((max,row)=>Math.max(max,Array.isArray(row)?row.length:0),0);}
