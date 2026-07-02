@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2f4257">
   <title>原料処理一覧</title>
-  <link rel="stylesheet" href="assets/base.css?v=20260630navcleanup">
+  <link rel="stylesheet" href="assets/base.css?v=20260630genryofields">
 </head>
 <body>
   <div class="tool-nav">
@@ -89,7 +89,7 @@ function compactTime(value){return value || '-';}
 function recordSort(a,b){return norm(b.updated_at||b.created_at||b.wash_date).localeCompare(norm(a.updated_at||a.created_at||a.wash_date));}
 function compareDateText(a,b,direction='desc'){const av=norm(a);const bv=norm(b);if(!av&&!bv)return 0;if(!av)return 1;if(!bv)return -1;const cmp=av.localeCompare(bv);return direction==='asc'?cmp:-cmp;}
 function displayRecordSort(a,b){const direction=getFilters().sortOrder;const dateCmp=compareDateText(a.wash_date,b.wash_date,direction);if(dateCmp)return dateCmp;return recordSort(a,b);}
-function cardSearchText(card){return [card.usage_kind,card.shikomi_no,card.rice_variety,card.rice_polish,card.rice_kg,card.wash_start,card.soak_start,card.soak_end,card.soak_duration,card.water_temp,card.kenjo_order,card.note].map(norm).join(' ');}
+function cardSearchText(card){return [card.usage_kind,card.shikomi_no,card.rice_variety,card.rice_polish,card.rice_kg,card.wash_start,card.wash_end,card.wash_duration,card.soak_start,card.soak_end,card.soak_duration,card.water_temp,card.kenjo_order,card.note].map(norm).join(' ');}
 function steamSearchText(record){const s=record.steam||{};const segs=Array.isArray(s.segments)?s.segments:[];return [s.actual_date,s.steam_in_time,s.boil_time,s.steam_through_time,s.steam_end_time,s.steaming_time_min,s.note,segs.map(seg=>[seg.label,seg.minutes,seg.raw_steam_pressure,seg.dry_steam_pressure].join(' ')).join(' ')].map(norm).join(' ');}
 function recordSearchText(record){return [record.wash_date,steamDate(record),steamSearchText(record),(record.rice_cards||[]).map(cardSearchText).join(' ')].map(norm).join(' ');}
 function recordTotal(record){let total=0;(record.rice_cards||[]).forEach(card=>{const v=parseFloat(String(card.rice_kg||'').replace(',','.'));if(!Number.isNaN(v))total+=v;});return total.toFixed(1)+' kg';}
@@ -113,8 +113,10 @@ function contextRecords(all,matched){const f=getFilters();if(!hasAnyFilter()||f.
 function limitedRecords(records){return records;}
 function recordFieldHtml(label,value,wide=false){return `<span class="record-usage-field${wide?' wide':''}"><b>${escapeHtml(label)}</b><span>${escapeHtml(value||'-')}</span></span>`;}
 function riceVarietyDisplay(card){const variety=String(card.rice_variety||'').trim();const polish=String(card.rice_polish||'').trim().replace(/%$/,'');if(variety&&polish)return `${variety} ${polish}%`;if(variety)return variety;if(polish)return `精米 ${polish}%`;return '未入力';}
-function soakDisplay(card){const start=compactTime(card.soak_start);const end=compactTime(card.soak_end);const duration=card.soak_duration&&card.soak_duration!=='自動'?card.soak_duration:'';const range=(start==='-'&&end==='-')?'-':`${start}→${end}`;return duration&&range!=='-'?`${range}（${duration}）`:range;}
-function cardRowHtml(card){const fields=[recordFieldHtml('仕込',card.shikomi_no||'未入力'),recordFieldHtml('品種',riceVarietyDisplay(card),true),recordFieldHtml('白米',card.rice_kg?card.rice_kg+'kg':'未入力'),recordFieldHtml('洗米',compactTime(card.wash_start)),recordFieldHtml('浸漬',soakDisplay(card),true),recordFieldHtml('水温',card.water_temp?card.water_temp+'℃':'未入力'),recordFieldHtml('検蒸順',card.kenjo_order||'-')];return `<div class="record-usage-row"><div class="record-usage-kind"><b>${escapeHtml(card.usage_kind||'用途未選択')}</b></div><div class="record-usage-fields">${fields.join('')}</div>${card.note?`<div class="record-note"><b>備考</b><span>${escapeHtml(card.note)}</span></div>`:''}</div>`;}
+function timeRangeDisplay(startValue,endValue,durationValue){const start=compactTime(startValue);const end=compactTime(endValue);const duration=durationValue&&durationValue!=='自動'?durationValue:'';const range=(start==='-'&&end==='-')?'-':`${start}→${end}`;return duration&&range!=='-'?`${range}（${duration}）`:range;}
+function washDisplay(card){return timeRangeDisplay(card.wash_start,card.wash_end,card.wash_duration);}
+function soakDisplay(card){return timeRangeDisplay(card.soak_start,card.soak_end,card.soak_duration);}
+function cardRowHtml(card){const fields=[recordFieldHtml('仕込',card.shikomi_no||'未入力'),recordFieldHtml('品種',riceVarietyDisplay(card),true),recordFieldHtml('白米',card.rice_kg?card.rice_kg+'kg':'未入力'),recordFieldHtml('洗米',washDisplay(card),true),recordFieldHtml('浸漬',soakDisplay(card),true),recordFieldHtml('水温',card.water_temp?card.water_temp+'℃':'未入力'),recordFieldHtml('検蒸順',card.kenjo_order||'-')];return `<div class="record-usage-row"><div class="record-usage-kind"><b>${escapeHtml(card.usage_kind||'用途未選択')}</b></div><div class="record-usage-fields">${fields.join('')}</div>${card.note?`<div class="record-note"><b>備考</b><span>${escapeHtml(card.note)}</span></div>`:''}</div>`;}
 function usageLineHtml(card){return cardRowHtml(card);}
 function usageCardHtml(card){return cardRowHtml(card);}
 function steamSegmentLine(segment){const parts=[segment.label||'区間未入力'];if(segment.minutes)parts.push(segment.minutes+'分');parts.push('生蒸気 '+(segment.raw_steam_pressure||'-')+' MPa');parts.push('乾燥蒸気 '+(segment.dry_steam_pressure||'-')+' MPa');return parts.map(escapeHtml).join(' / ');}
