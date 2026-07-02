@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2f4257">
   <title>原料処理入力</title>
-  <link rel="stylesheet" href="assets/base.css?v=20260612genryolistio">
+  <link rel="stylesheet" href="assets/base.css?v=20260630navcleanup">
 
   <style>
     .steam-segment-list{display:grid;gap:8px}
@@ -156,7 +156,7 @@ function normalizeSteamSegmentsForForm(segments){
 }
 function collectSteamSegments(){return [...document.querySelectorAll('.steam-segment-card')].map(card=>({key:card.dataset.segmentKey||'',label:card.dataset.segmentLabel||'',minutes:card.querySelector('.steam-minutes')?.value||'',raw_steam_pressure:card.querySelector('.raw-steam-pressure')?.value||'',dry_steam_pressure:card.querySelector('.dry-steam-pressure')?.value||''}));}
 function collectGenryoRecord(existing){const idInput=document.getElementById('record-id');const records=safeReadRecords();const existingRecord=existing || records.find(r=>r.record_id===idInput.value) || null;const now=nowIso();return {schema:GENRYO_SCHEMA,record_id:idInput.value||makeId('genryo'),created_at:existingRecord?.created_at||now,updated_at:now,wash_date:document.getElementById('wash-date')?.value||'',rice_cards:collectRiceCards(),steam:{actual_date:document.querySelector('.steam-actual-date')?.value||'',steam_in_time:document.querySelector('.steam-in-time')?.value||'',boil_time:document.querySelector('.boil-time')?.value||'',steam_through_time:document.querySelector('.steam-through-time')?.value||'',steam_end_time:document.querySelector('.steam-end-time')?.value||'',steaming_time_min:document.getElementById('steam-total-min')?.textContent||'0',steam_after_total_min:'',segments:collectSteamSegments(),note:document.querySelector('.steam-note')?.value||''}};}
-function saveGenryoRecord(){const records=safeReadRecords();const currentId=document.getElementById('record-id')?.value||'';const existing=records.find(r=>r.record_id===currentId);const record=collectGenryoRecord(existing);const next=records.filter(r=>r.record_id!==record.record_id);next.unshift(record);if(!safeWriteRecords(next,'原料処理保存')){alert('保存できませんでした。ブラウザの保存容量または設定を確認してください。');return;}document.getElementById('record-id').value=record.record_id;const status=document.getElementById('record-id-status');if(status)status.textContent='保存済み';const out=document.getElementById('save-result');if(out){out.innerHTML=`端末内保存OK / 外部バックアップ未作成。作業の区切りで <a class="inline-link" href="data.html">全工程JSONバックアップ</a> を作成してください。 <a class="inline-link" href="genryo.html">原料処理一覧へ</a>`; out.className='notice';}}
+function saveGenryoRecord(){const records=safeReadRecords();const currentId=document.getElementById('record-id')?.value||'';const existing=records.find(r=>r.record_id===currentId);const record=collectGenryoRecord(existing);const next=records.filter(r=>r.record_id!==record.record_id);next.unshift(record);if(!safeWriteRecords(next,'原料処理保存')){alert('保存できませんでした。ブラウザの保存容量または設定を確認してください。');return;}document.getElementById('record-id').value=record.record_id;const status=document.getElementById('record-id-status');if(status)status.textContent='保存済み';const out=document.getElementById('save-result');if(out){out.innerHTML=`端末内保存OK / 外部バックアップ未作成。作業の区切りでトップの「データ管理」から全工程JSONバックアップを作成してください。 <a class="inline-link" href="genryo.html">原料処理一覧へ</a>`; out.className='notice';}}
 function clearRiceCards(){const list=document.getElementById('rice-card-list');list.innerHTML='';}
 function setValue(selector,value){const el=document.querySelector(selector);if(el)el.value=value||'';}
 function loadGenryoRecord(){const params=new URLSearchParams(location.search);const id=params.get('record_id')||params.get('id')||'';if(!id)return;const record=safeReadRecords().find(r=>r.record_id===id);if(!record)return;document.getElementById('record-id').value=record.record_id;setValue('#wash-date',record.wash_date);clearRiceCards();(record.rice_cards&&record.rice_cards.length?record.rice_cards:[{}]).forEach(card=>addRiceCard(card));const s=record.steam||{};setValue('.steam-actual-date',s.actual_date);setValue('.steam-in-time',s.steam_in_time);setValue('.boil-time',s.boil_time);setValue('.steam-through-time',s.steam_through_time);setValue('.steam-end-time',s.steam_end_time);setValue('.steam-note',s.note||'');const steamSegs=normalizeSteamSegmentsForForm(s.segments);document.querySelectorAll('.steam-segment-card').forEach(card=>{const seg=steamSegs[card.dataset.segmentKey]||{};const min=card.querySelector('.steam-minutes');const raw=card.querySelector('.raw-steam-pressure');const dry=card.querySelector('.dry-steam-pressure');if(min)min.value=seg.minutes||'';if(raw)raw.value=seg.raw_steam_pressure||'';if(dry)dry.value=seg.dry_steam_pressure||'';});
@@ -165,6 +165,6 @@ window.addEventListener('DOMContentLoaded',()=>{loadGenryoRecord();recalcAllSoak
 </script>
     </div>
   </main>
-  <script src="assets/ui.js?v=20260612genryolistio" defer></script>
+  <script src="assets/ui.js?v=20260630navcleanup" defer></script>
 </body>
 </html>
