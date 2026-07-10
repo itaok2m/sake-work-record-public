@@ -99,13 +99,14 @@
 
       <section class="input-block">
         <h2>保存済み分析記録</h2>
-        <p class="empty-note">保存データは1分析1レコードです。日別のまとまりを保ったまま、サンプル・仕込号・T.No・作業で絞り込み、連続した分析推移を確認します。</p>
+        <p class="empty-note">保存データは1分析1レコードです。日別のまとまりを保ったまま、サンプル・仕込号・T.No・醪日数・作業で絞り込み、連続した分析推移を確認します。</p>
         <div class="analysis-view-controls">
           <div><label>サンプル</label><select id="filter-sample"><option value="">すべて</option><option value="酛">酛</option><option value="醪">醪</option><option value="酒">酒</option><option value="その他">その他</option></select></div>
           <div><label>仕込号</label><input id="filter-shikomi"></div>
           <div><label>T.No</label><input id="filter-tno"></div>
-          <div><label>作業</label><select id="filter-work"><option value="">すべて</option><option value="日数分析">日数分析</option><option value="酒母卸">酒母卸</option><option value="踊">踊</option><option value="上槽前">上槽前</option><option value="アル添前（上槽）">アル添前（上槽）</option><option value="添加後（四段）">添加後（四段）</option><option value="検定">検定</option><option value="大吟検定">大吟検定</option><option value="滓引後・滓酒">滓引後・滓酒</option><option value="合併">合併</option><option value="濾過後">濾過後</option><option value="火入">火入</option><option value="調合後">調合後</option><option value="未分類">未分類</option></select></div>
-          <div><label>表示順</label><select id="filter-sort"><option value="desc">日付 新しい順</option><option value="asc">日付 古い順</option><option value="day">日数順</option></select></div>
+          <div><label>醪日数</label><select id="filter-moromi-day"><option value="">すべて</option><option value="酒母卸">酒母卸</option><option value="踊">踊</option><option value="3">3日目</option><option value="4">4日目</option><option value="5">5日目</option><option value="6">6日目</option><option value="7">7日目</option><option value="8">8日目</option><option value="9">9日目</option><option value="10">10日目</option><option value="11">11日目</option><option value="12">12日目</option><option value="13">13日目</option><option value="14">14日目</option><option value="15">15日目</option><option value="16">16日目</option><option value="17">17日目</option><option value="18">18日目</option><option value="19">19日目</option><option value="20">20日目</option><option value="21">21日目</option><option value="22">22日目</option><option value="23">23日目</option><option value="24">24日目</option><option value="25">25日目</option><option value="26">26日目</option><option value="27">27日目</option><option value="28">28日目</option><option value="29">29日目</option><option value="30">30日目</option><option value="31">31日目</option><option value="32">32日目</option><option value="33">33日目</option><option value="34">34日目</option><option value="35">35日目</option><option value="36">36日目</option><option value="37">37日目</option><option value="38">38日目</option><option value="39">39日目</option><option value="40">40日目</option></select></div>
+          <div><label>作業</label><select id="filter-work"><option value="">すべて</option><option value="アル添前（上槽）">アル添前（上槽）</option><option value="添加後（四段）">添加後（四段）</option><option value="上槽前">上槽前</option><option value="検定">検定</option><option value="大吟検定">大吟検定</option><option value="滓引後・滓酒">滓引後・滓酒</option><option value="合併">合併</option><option value="濾過後">濾過後</option><option value="調合後">調合後</option><option value="火入後">火入後</option></select></div>
+          <div><label>表示順</label><select id="filter-sort"><option value="desc">日付 新しい順</option><option value="asc">日付 古い順</option><option value="moromi">醪日数順（仕込別）</option><option value="work">作業工程順</option></select></div>
           <div><label>表示範囲</label><select id="filter-limit"><option value="100">100件</option><option value="200">200件</option><option value="all">全件</option></select></div>
         </div>
         <div class="actions no-print"><button class="btn" type="button" onclick="renderRecords()">表示を更新</button><button class="btn" type="button" onclick="clearFilters()">条件を空にする</button><button class="btn" type="button" onclick="printCurrentView()">表示中の分析表を印刷</button></div>
@@ -155,16 +156,16 @@ function dailyRowToRecord(row,date,existing){const process=inferProcess(row['サ
 function openDailyRecords(){const date=document.getElementById('daily-date').value;if(!date){alert('分析日を選んでください。');return;}const records=readRecords().filter(r=>getField(r,'分析日')===date).sort(recordSortDesc).reverse();const body=document.getElementById('daily-rows');body.innerHTML='';if(records.length){records.forEach(r=>addDailyRow(recordToDailyRow(r)));setStatus(`${date} の分析記録 ${records.length}件を開きました。まとめて編集できます。`);}else{addDailyRow();setStatus(`${date} の保存済み分析記録はありません。新規入力できます。`);}}
 function saveDailyRecords(){const date=document.getElementById('daily-date').value;if(!date){alert('分析日を選んでください。');return;}const rows=Array.from(document.querySelectorAll('#daily-rows tr')).map(readDailyRow).filter(rowHasValue);if(!rows.length){if(!confirm(`${date} の入力行が空です。この日の保存済み分析記録を削除扱いにしますか？`))return;}const all=readRecords();const oldForDate=all.filter(r=>getField(r,'分析日')===date);const keep=all.filter(r=>getField(r,'分析日')!==date);const oldById=new Map(oldForDate.map(r=>[r.record_id,r]));const nextRows=rows.map(row=>dailyRowToRecord(row,date,oldById.get(row.record_id)));writeRecords([...nextRows,...keep].sort(recordSortDesc));setStatus(`${date} の分析記録を ${nextRows.length}件で保存しました。既存 ${oldForDate.length}件はこの日の表内容で置き換えました。`);renderRecords();}
 function getFilter(id){const el=document.getElementById(id);return el?String(el.value||'').trim():'';}
-function clearFilters(){['filter-shikomi','filter-tno'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const sample=document.getElementById('filter-sample');if(sample)sample.value='';const work=document.getElementById('filter-work');if(work)work.value='';const sort=document.getElementById('filter-sort');if(sort)sort.value='desc';const limit=document.getElementById('filter-limit');if(limit)limit.value='100';renderRecords();}
+function clearFilters(){['filter-shikomi','filter-tno'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const sample=document.getElementById('filter-sample');if(sample)sample.value='';const moromiDay=document.getElementById('filter-moromi-day');if(moromiDay)moromiDay.value='';const work=document.getElementById('filter-work');if(work)work.value='';const sort=document.getElementById('filter-sort');if(sort)sort.value='desc';const limit=document.getElementById('filter-limit');if(limit)limit.value='100';renderRecords();}
 function normalizeSearchValue(value){return normalizeDigits(String(value||'').replace(/[号ＴＮｏ．]/g,'').replace(/T\.?No\.?/ig,'').replace(/\s+/g,'')).toLowerCase();}
 function exactOrBlank(recordField,filterValue){if(!filterValue)return true;return normalizeSearchValue(recordField)===normalizeSearchValue(filterValue);}
 function sampleMatches(record,filterValue){if(!filterValue)return true;const sample=getField(record,'サンプル種類');if(filterValue==='その他')return !['酛','酒母','醪','酒'].some(v=>sample.includes(v));if(filterValue==='酛')return sample.includes('酛')||sample.includes('酒母');return sample.includes(filterValue);}
 function numericHead(value){const m=normalizeDigits(String(value||'')).match(/-?\d+(?:\.\d+)?/);return m?Number(m[0]):9999;}
-function isNumericDayValue(value){const s=normalizeDigits(String(value||'').trim());return /^\d+(?:\.\d+)?$/.test(s);}
+function isNumericDayValue(value){const st=normalizeDigits(String(value||'').trim());return /^\d+(?:\.\d+)?$/.test(st);}
 function workGroup(record){const sample=getField(record,'サンプル種類');const day=getField(record,'日数');const memo=getField(record,'メモ');const combined=`${sample} ${day} ${memo}`;
+  // 作業プルダウンはユーザー自作Excel「作業別分析 R7」の区分だけに限定する。
+  // 酒母卸・踊・3日目などは「醪日数別分析」の軸であり、作業別には混ぜない。
   const rules=[
-    ['酒母卸',/卸/],
-    ['踊',/踊/],
     ['アル添前（上槽）',/アル添前|上槽前アル添|アル添/],
     ['添加後（四段）',/添加後|四段|添加/],
     ['上槽前',/上槽前|上槽/],
@@ -173,29 +174,54 @@ function workGroup(record){const sample=getField(record,'サンプル種類');co
     ['滓引後・滓酒',/滓引|滓酒|おり/],
     ['合併',/合併/],
     ['濾過後',/濾過/],
-    ['火入',/火入/],
-    ['調合後',/調合/]
+    ['調合後',/調合/],
+    ['火入後',/火入/]
   ];
   for(const [label,re] of rules){if(re.test(combined))return label;}
-  if(isNumericDayValue(day))return '日数分析';
-  return '未分類';
+  return '';
 }
 function workMatches(record,filterValue){if(!filterValue)return true;return workGroup(record)===filterValue;}
+function moromiDayKey(record){const day=normalizeDigits(String(getField(record,'日数')||'').trim());const memo=String(getField(record,'メモ')||'');const combined=`${day} ${memo}`;if(/酒母卸|卸/.test(combined))return '酒母卸';if(/踊/.test(combined))return '踊';const m=day.match(/^(\d+)(?:\.0+)?(?:日目?|日)?$/);if(m){const n=Number(m[1]);if(n>=3&&n<=40)return String(n);}return '';}
+function moromiDayMatches(record,filterValue){if(!filterValue)return true;return moromiDayKey(record)===String(filterValue);}
+function sampleFlowRank(record){const sample=getField(record,'サンプル種類');const process=getField(record,'対象工程');const text=`${sample} ${process}`;
+  if(/酛|酒母/.test(text))return 0;
+  if(/醪|もろみ|四段/.test(text))return 1000;
+  if(/酒|検定|濾過|火入|調合|合併/.test(text))return 2000;
+  return 3000;
+}
+function moromiStageRank(record){const key=moromiDayKey(record);
+  // 醪日数別はユーザー運用に合わせ、添・仲・留を分析軸に入れない。
+  // 現時点では酒母卸、踊、3〜40日目を醪日数別の候補とする。
+  if(key==='酒母卸')return 10;
+  if(key==='踊')return 20;
+  if(/^\d+$/.test(key))return 100+Number(key);
+  const workOrder={'アル添前（上槽）':800,'添加後（四段）':820,'上槽前':840,'大吟検定':900,'検定':920,'滓引後・滓酒':1000,'合併':1100,'濾過後':1200,'調合後':1300,'火入後':1400};
+  const work=workGroup(record);
+  return workOrder[work]??9000;
+}
+function workStageRank(record){const work=workGroup(record);const workOrder={'アル添前（上槽）':10,'添加後（四段）':20,'上槽前':30,'検定':40,'大吟検定':50,'滓引後・滓酒':60,'合併':70,'濾過後':80,'調合後':90,'火入後':100};return work?workOrder[work]:9000;}
+function moromiSortValue(record){return sampleFlowRank(record)+moromiStageRank(record);}
+function workSortValue(record){return workStageRank(record);}
 function recordSortForView(a,b){const sort=getFilter('filter-sort')||'desc';
-  if(sort==='day'){
-    return String(getField(a,'仕込号')).localeCompare(String(getField(b,'仕込号')),'ja',{numeric:true})||String(getField(a,'TNo')).localeCompare(String(getField(b,'TNo')),'ja',{numeric:true})||numericHead(getField(a,'日数'))-numericHead(getField(b,'日数'))||recordDate(a).localeCompare(recordDate(b));
+  const shikomiCompare=String(getField(a,'仕込号')).localeCompare(String(getField(b,'仕込号')),'ja',{numeric:true});
+  const tnoCompare=String(getField(a,'TNo')).localeCompare(String(getField(b,'TNo')),'ja',{numeric:true});
+  if(sort==='moromi'){
+    return shikomiCompare||tnoCompare||moromiSortValue(a)-moromiSortValue(b)||recordDate(a).localeCompare(recordDate(b));
+  }
+  if(sort==='work'){
+    return workSortValue(a)-workSortValue(b)||recordDate(a).localeCompare(recordDate(b))||shikomiCompare||tnoCompare||moromiSortValue(a)-moromiSortValue(b);
   }
   const byDate=recordDate(a).localeCompare(recordDate(b));
   if(byDate!==0)return sort==='asc'?byDate:-byDate;
-  return String(getField(a,'仕込号')).localeCompare(String(getField(b,'仕込号')),'ja',{numeric:true})||String(getField(a,'TNo')).localeCompare(String(getField(b,'TNo')),'ja',{numeric:true})||numericHead(getField(a,'日数'))-numericHead(getField(b,'日数'));
+  return shikomiCompare||tnoCompare||moromiSortValue(a)-moromiSortValue(b);
 }
-function filteredRecords(){const sample=getFilter('filter-sample');const shikomi=getFilter('filter-shikomi');const tno=getFilter('filter-tno');const work=getFilter('filter-work');let records=readRecords().filter(record=>sampleMatches(record,sample)&&exactOrBlank(getField(record,'仕込号'),shikomi)&&exactOrBlank(getField(record,'TNo'),tno)&&workMatches(record,work));return records.sort(recordSortForView);}
+function filteredRecords(){const sample=getFilter('filter-sample');const shikomi=getFilter('filter-shikomi');const tno=getFilter('filter-tno');const moromiDay=getFilter('filter-moromi-day');const work=getFilter('filter-work');let records=readRecords().filter(record=>sampleMatches(record,sample)&&exactOrBlank(getField(record,'仕込号'),shikomi)&&exactOrBlank(getField(record,'TNo'),tno)&&moromiDayMatches(record,moromiDay)&&workMatches(record,work));return records.sort(recordSortForView);}
 function openDateFromRow(date){document.getElementById('daily-date').value=date;openDailyRecords();window.scrollTo({top:0,behavior:'smooth'});}
 function consecutiveDateGroups(records){const groups=[];for(const record of records){const date=getField(record,'分析日')||'未日付';const last=groups[groups.length-1];if(last&&last.key===date){last.records.push(record);}else{groups.push({key:date,records:[record]});}}return groups;}
 function renderRecordCells(r){return `<td>${escapeHtml(getField(r,'サンプル種類'))}</td><td class="num">${escapeHtml(getField(r,'日数'))}</td><td class="num">${escapeHtml(getField(r,'仕込号'))}</td><td class="num">${escapeHtml(getField(r,'TNo'))}</td><td class="num">${escapeHtml(getField(r,'ボーメ日本酒度'))}</td><td class="num">${escapeHtml(getField(r,'酸'))}</td><td class="num">${escapeHtml(getField(r,'アミノ酸'))}</td><td class="num">${escapeHtml(getField(r,'アルコール'))}</td><td>${escapeHtml(getField(r,'メモ'))}</td>`;}
 function renderDateGroup(g){return g.records.map((r,idx)=>{const dateCell=idx===0?`<td class="date-group-cell" rowspan="${g.records.length}"><span class="date-main">${escapeHtml(g.key)}</span><span class="count">${g.records.length}件</span><button class="btn no-print" type="button" onclick="openDateFromRow('${escapeHtml(g.key)}')">この日を編集</button></td>`:'';return `<tr>${dateCell}${renderRecordCells(r)}</tr>`;}).join('');}
 function renderRecords(){const all=readRecords();let records=filteredRecords();const limit=getFilter('filter-limit')||'100';const shown=limit==='all'?records:records.slice(0,Number(limit)||100);const container=document.getElementById('saved-records');if(!container)return;const groups=consecutiveDateGroups(shown);
-  let body=`<tr class="view-note"><td colspan="10">日付セルと「この日を編集」は同じ日のまとまりに1つだけ表示します。仕込号・T.No・作業で絞り込み、表示順で連続データを確認します。</td></tr>`;
+  let body=`<tr class="view-note"><td colspan="10">日付セルと「この日を編集」は同じ日のまとまりに1つだけ表示します。仕込号・T.No・醪日数・作業で絞り込み、日付順・醪日数順・作業工程順で連続データを確認します。</td></tr>`;
   body+=groups.map(renderDateGroup).join('');
   if(!groups.length)body='<tr><td colspan="10">条件に合う保存済み記録はありません。</td></tr>';
   container.innerHTML=`<table id="current-analysis-view"><thead><tr><th>日付</th><th>サンプル種類</th><th>日数</th><th>仕込号</th><th>T.No</th><th>Be/日本酒度</th><th>酸</th><th>アミノ酸</th><th>アルコール</th><th>メモ</th></tr></thead><tbody>${body}</tbody></table>`;const count=document.getElementById('record-count');if(count)count.textContent=`端末内保存 ${all.length}件 / 表示対象 ${records.length}件 / 表示 ${shown.length}件 / 日付まとまり ${groups.length}件`;
@@ -203,6 +229,6 @@ function renderRecords(){const all=readRecords();let records=filteredRecords();c
 function printCurrentView(){renderRecords();const table=document.getElementById('current-analysis-view');if(!table){window.print();return;}const mode='分析一覧';const html=`<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>分析記録 ${escapeHtml(mode)}</title><style>body{font-family:sans-serif;margin:16px;color:#111}h1{font-size:18px}table{border-collapse:collapse;width:100%;font-size:10.5pt}th,td{border:1px solid #999;padding:4px 5px;vertical-align:top}th{background:#eee;text-align:center}.num{text-align:center}.no-print{display:none}</style></head><body><h1>分析記録 ${escapeHtml(mode)}</h1>${table.outerHTML}</body></html>`;const w=window.open('','_blank');if(!w){window.print();return;}w.document.open();w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),250);}
 document.addEventListener('DOMContentLoaded',()=>{document.getElementById('daily-date').value=todayIsoDate();addDailyRow();renderRecords();});
   </script>
-  <script src="assets/ui.js?v=20260710analysisSortFilter04" defer></script>
+  <script src="assets/ui.js?v=20260710analysisMoromiDay10" defer></script>
 </body>
 </html>
