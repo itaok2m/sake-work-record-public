@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2f4257">
   <title>分析記録</title>
-  <link rel="stylesheet" href="assets/base.css?v=20260710independent01">
+  <link rel="stylesheet" href="assets/base.css?v=20260710analysis01">
 </head>
 <body>
   <div class="tool-nav">
@@ -15,19 +15,21 @@
   <main class="tool-body">
     <section class="screen-lead">
       <h1>分析記録</h1>
+      <p>日々の分析入力をここで保存します。酒母製造・醪経過・酒類側へは保存時に自動同期せず、後段で候補取り込み・参照表示します。</p>
     </section>
     <div class="wrapper wide">
       <section class="input-block">
         <h2>分析対象</h2>
-        <p class="empty-note">この画面の分析記録を正本にします。酒母製造・醪経過・酒類側へは、保存時に自動同期せず、後段で候補取り込みします。</p>
+        <p class="empty-note">分析日、対象工程、対象ID/仕込号/T.No のどれかを入れておくと、後で酒母・醪・酒類側の候補として拾いやすくなります。未入力でも保存はできます。</p>
         <div class="form-grid">
           <div class="field"><label>分析日</label><input data-field="分析日" type="date"></div>
+          <div class="field"><label>分析時刻</label><input data-field="分析時刻" type="time" step="1"></div>
           <div class="field"><label>対象工程</label><select data-field="対象工程"><option>酒母</option><option>醪</option><option>酒類</option><option>その他</option></select></div>
           <div class="field"><label>対象ID / 対象名</label><input data-field="対象ID" placeholder="酒母号 / 仕込号 / タンク番号"></div>
           <div class="field"><label>仕込号</label><input data-field="仕込号" placeholder="例：12号"></div>
           <div class="field"><label>T.No</label><input data-field="TNo" placeholder="タンク番号など"></div>
           <div class="field"><label>サンプル種類</label><input data-field="サンプル種類" placeholder="酒母 / 醪 / 製成酒など"></div>
-          <div class="field"><label>日数 / 日順</label><input data-field="日数日順" inputmode="numeric"></div>
+          <div class="field"><label>日数 / 日順</label><input data-field="日数日順" inputmode="numeric" placeholder="酒母日数・醪日順など"></div>
         </div>
       </section>
       <section class="input-block">
@@ -46,35 +48,67 @@
       <section class="input-block">
         <h2>採取・処分</h2>
         <div class="form-grid">
-          <div class="field"><label>採取量</label><input data-field="採取量" inputmode="decimal"></div>
-          <div class="field"><label>使用量</label><input data-field="使用量" inputmode="decimal"></div>
-          <div class="field"><label>廃棄量</label><input data-field="廃棄量" inputmode="decimal"></div>
+          <div class="field"><label>採取量 ml</label><input data-field="採取量ml" inputmode="decimal"></div>
+          <div class="field"><label>使用量 ml</label><input data-field="使用量ml" inputmode="decimal"></div>
+          <div class="field"><label>廃棄量 ml</label><input data-field="廃棄量ml" inputmode="decimal"></div>
           <div class="field memo-field"><label>処分内容・備考</label><textarea data-field="備考" placeholder="処分内容、分析メモ、異常、再測定など"></textarea></div>
         </div>
-        <div class="actions"><button class="btn primary" type="button" onclick="saveRecord()">分析記録を保存</button><button class="btn" type="button" onclick="clearForm()">入力欄を空にする</button></div>
+        <div class="actions"><button id="save-button" class="btn primary" type="button" onclick="saveRecord()">分析記録を保存</button><button class="btn" type="button" onclick="clearForm()">入力欄を空にする</button><button class="btn" type="button" onclick="cancelEdit()">編集をやめる</button></div>
         <div id="record-status" class="list-status"></div>
       </section>
-      <section class="input-block"><h2>保存済み分析記録</h2><div id="record-count" class="list-status"></div><div id="saved-records" class="check-list"></div></section>
+      <section class="input-block">
+        <h2>保存済み分析記録</h2>
+        <p class="empty-note">分析記録はこの画面が正本です。ここで編集・削除しても、酒母製造・醪経過の保存済み記録を勝手に書き換えません。</p>
+        <div class="form-grid">
+          <div class="field"><label>対象工程で絞り込み</label><select id="filter-process"><option value="">すべて</option><option>酒母</option><option>醪</option><option>酒類</option><option>その他</option></select></div>
+          <div class="field"><label>分析日 開始</label><input id="filter-date-start" type="date"></div>
+          <div class="field"><label>分析日 終了</label><input id="filter-date-end" type="date"></div>
+          <div class="field"><label>キーワード</label><input id="filter-keyword" placeholder="仕込号 / T.No / 対象ID / 備考"></div>
+          <div class="field"><label>表示順</label><select id="filter-sort"><option value="desc">新しい順</option><option value="asc">古い順</option></select></div>
+          <div class="field"><label>表示範囲</label><select id="filter-limit"><option value="20">20件</option><option value="50">50件</option><option value="100">100件</option><option value="all">全件</option></select></div>
+        </div>
+        <div class="actions"><button class="btn" type="button" onclick="renderRecords()">表示を更新</button><button class="btn" type="button" onclick="clearFilters()">条件を空にする</button></div>
+        <div id="record-count" class="list-status"></div>
+        <div id="saved-records" class="check-list"></div>
+      </section>
     </div>
   </main>
-  <script>window.WORK_RECORD_PAGE={"process": "analysis", "label": "分析記録", "storageKey": "workRecordAnalysisRecordsV1", "idPrefix": "analysis", "titleFields": ["対象ID", "仕込号", "TNo"], "dateFields": ["分析日"], "summaryFields": ["対象工程", "ボーメ", "日本酒度", "アルコール%", "酸度ml"]};</script>
+  <script>window.WORK_RECORD_PAGE={"process":"analysis","label":"分析記録","storageKey":"workRecordAnalysisRecordsV1","idPrefix":"analysis","titleFields":["対象ID","仕込号","TNo"],"dateFields":["分析日"],"summaryFields":["対象工程","ボーメ","日本酒度","アルコール%","酸度ml","アミノ酸度ml","グルコース","品温℃"]};</script>
   <script>
 const RECORD_KEY=window.WORK_RECORD_PAGE.storageKey;
 const RECORD_LABEL=window.WORK_RECORD_PAGE.label;
+let editingRecordId='';
 function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function escapeJs(value){return String(value??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r/g,'').replace(/\n/g,'\\n');}
 function nowIso(){return new Date().toISOString();}
 function compactId(){return Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
 function readRecords(){try{const raw=localStorage.getItem(RECORD_KEY);const parsed=raw?JSON.parse(raw):[];return Array.isArray(parsed)?parsed:[];}catch(_err){return [];}}
 function writeRecords(records){localStorage.setItem(RECORD_KEY,JSON.stringify(records));}
 function fieldValue(name){const el=document.querySelector(`[data-field="${name}"]`);return el?String(el.value||'').trim():'';}
 function setStatus(text){const el=document.getElementById('record-status');if(el)el.textContent=text;}
-function collectRecord(){const fields={};document.querySelectorAll('[data-field]').forEach(el=>{fields[el.dataset.field]=String(el.value||'').trim();});return {record_id:window.WORK_RECORD_PAGE.idPrefix+'_'+compactId(),schema:'workRecordThinRecordV01',process:window.WORK_RECORD_PAGE.process,label:RECORD_LABEL,created_at:nowIso(),updated_at:nowIso(),fields,candidate_imports:[],notes:'薄い実装。候補取り込み・グラフ・帳票は次段階。'};}
-function saveRecord(){try{const records=readRecords();const next=collectRecord();records.unshift(next);writeRecords(records);setStatus(`${RECORD_LABEL}を保存しました。端末内保存 ${records.length}件。正本化は全工程バックアップJSONで行います。`);renderRecords();}catch(err){alert('保存できませんでした。'+(err&&err.message?'\n'+err.message:''));}}
-function clearForm(){document.querySelectorAll('[data-field]').forEach(el=>{el.value='';});setStatus('入力欄を空にしました。保存済み記録は消していません。');}
+function collectFields(){const fields={};document.querySelectorAll('[data-field]').forEach(el=>{fields[el.dataset.field]=String(el.value||'').trim();});return fields;}
+function targetKeyFilled(fields){return Boolean(fields['対象ID']||fields['仕込号']||fields['TNo']);}
+function missingImportant(fields){const missing=[];if(!fields['分析日'])missing.push('分析日');if(!fields['対象工程'])missing.push('対象工程');if(!targetKeyFilled(fields))missing.push('対象ID / 仕込号 / T.No のいずれか');return missing;}
+function collectRecord(existing){const fields=collectFields();const created=existing?.created_at||nowIso();return {record_id:existing?.record_id||window.WORK_RECORD_PAGE.idPrefix+'_'+compactId(),schema:'workRecordAnalysisRecordV02',process:window.WORK_RECORD_PAGE.process,label:RECORD_LABEL,created_at:created,updated_at:nowIso(),fields,candidate_imports:Array.isArray(existing?.candidate_imports)?existing.candidate_imports:[],notes:'分析記録を正本にする。工程側へ保存時の完全自動同期はしない。'};}
+function saveRecord(){try{const fields=collectFields();const missing=missingImportant(fields);if(missing.length&&!confirm('後で検索・候補確認しにくくなる項目があります。\n未入力: '+missing.join(' / ')+'\n\nこのまま保存しますか？'))return;const records=readRecords();if(editingRecordId){const idx=records.findIndex(r=>r.record_id===editingRecordId);if(idx<0){editingRecordId='';setStatus('編集中の記録が見つからないため、新規保存に切り替えます。');return saveRecord();}records[idx]=collectRecord(records[idx]);records.sort(recordSortDesc);writeRecords(records);setStatus(`${RECORD_LABEL}を更新しました。端末内保存 ${records.length}件。工程側の保存済み記録は自動変更していません。`);editingRecordId='';updateEditState();renderRecords();return;}const next=collectRecord(null);records.unshift(next);writeRecords(records);setStatus(`${RECORD_LABEL}を保存しました。端末内保存 ${records.length}件。正本化は全工程バックアップJSONで行います。`);renderRecords();}catch(err){alert('保存できませんでした。'+(err&&err.message?'\n'+err.message:''));}}
+function clearForm(){document.querySelectorAll('[data-field]').forEach(el=>{el.value='';});editingRecordId='';updateEditState();setStatus('入力欄を空にしました。保存済み記録は消していません。');}
+function cancelEdit(){editingRecordId='';updateEditState();setStatus('編集状態を解除しました。入力欄の値は残しています。');}
+function updateEditState(){const btn=document.getElementById('save-button');if(btn)btn.textContent=editingRecordId?'分析記録を更新':'分析記録を保存';}
 function primaryValue(record,names){for(const name of names){const value=record.fields&&record.fields[name];if(value)return value;}return '未入力';}
-function renderRecords(){const records=readRecords();const list=document.getElementById('saved-records');if(!list)return;const rows=records.slice(0,20).map(record=>{const title=primaryValue(record,window.WORK_RECORD_PAGE.titleFields||[]);const date=primaryValue(record,window.WORK_RECORD_PAGE.dateFields||[]);const meta=(record.updated_at||record.created_at||'').replace('T',' ').slice(0,16);const summary=window.WORK_RECORD_PAGE.summaryFields.map(name=>`${name}: ${record.fields?.[name]||'未入力'}`).join(' / ');return `<div class="check-item"><b>${escapeHtml(title)}</b><span class="status draft">端末内</span> ${escapeHtml(date)}<br><small>${escapeHtml(summary)} / 更新 ${escapeHtml(meta)}</small></div>`;}).join('');list.innerHTML=rows||'<div class="empty-note">保存済み記録はまだありません。</div>';const count=document.getElementById('record-count');if(count)count.textContent=`端末内保存 ${records.length}件`;}
-document.addEventListener('DOMContentLoaded',()=>{renderRecords();});
+function recordDate(record){return String(record.fields?.['分析日']||record.created_at||record.updated_at||'');}
+function recordSortDesc(a,b){const da=recordDate(a);const db=recordDate(b);if(da!==db)return db.localeCompare(da);return String(b.updated_at||b.created_at||'').localeCompare(String(a.updated_at||a.created_at||''));}
+function recordText(record){return Object.values(record.fields||{}).join(' ').toLowerCase();}
+function getFilter(id){const el=document.getElementById(id);return el?String(el.value||'').trim():'';}
+function clearFilters(){['filter-process','filter-date-start','filter-date-end','filter-keyword'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const sort=document.getElementById('filter-sort');if(sort)sort.value='desc';const limit=document.getElementById('filter-limit');if(limit)limit.value='20';renderRecords();}
+function filteredRecords(){const process=getFilter('filter-process');const start=getFilter('filter-date-start');const end=getFilter('filter-date-end');const keyword=getFilter('filter-keyword').toLowerCase();const sort=getFilter('filter-sort')||'desc';let records=readRecords().filter(record=>{const f=record.fields||{};const d=String(f['分析日']||'');if(process&&f['対象工程']!==process)return false;if(start&&d&&d<start)return false;if(start&&!d)return false;if(end&&d&&d>end)return false;if(end&&!d)return false;if(keyword&&!recordText(record).includes(keyword))return false;return true;});records.sort(recordSortDesc);if(sort==='asc')records.reverse();return records;}
+function fillFormFromRecord(record,asEdit){document.querySelectorAll('[data-field]').forEach(el=>{el.value=record.fields?.[el.dataset.field]||'';});editingRecordId=asEdit?record.record_id:'';updateEditState();window.scrollTo({top:0,behavior:'smooth'});setStatus(asEdit?'保存済み分析記録を入力欄へ戻しました。修正後に「分析記録を更新」を押してください。':'保存済み分析記録を複製しました。必要箇所を直して新規保存してください。');}
+function editRecord(id){const record=readRecords().find(r=>r.record_id===id);if(!record){alert('記録が見つかりません。');return;}fillFormFromRecord(record,true);}
+function duplicateRecord(id){const record=readRecords().find(r=>r.record_id===id);if(!record){alert('記録が見つかりません。');return;}fillFormFromRecord(record,false);}
+function deleteRecord(id){const records=readRecords();const record=records.find(r=>r.record_id===id);if(!record){alert('記録が見つかりません。');return;}const title=primaryValue(record,window.WORK_RECORD_PAGE.titleFields||[]);if(!confirm(`分析記録を削除します。\n対象: ${title}\n\nこの操作では酒母製造・醪経過の保存済み記録は変更しません。`))return;const next=records.filter(r=>r.record_id!==id);writeRecords(next);if(editingRecordId===id){editingRecordId='';updateEditState();}setStatus(`分析記録を削除しました。端末内保存 ${next.length}件。`);renderRecords();}
+function analysisSummary(record){const f=record.fields||{};const names=['ボーメ','日本酒度','アルコール%','酸度ml','アミノ酸度ml','グルコース','品温℃'];return names.map(name=>`${name}: ${f[name]||'未入力'}`).join(' / ');}
+function renderRecords(){const all=readRecords();let records=filteredRecords();const limit=getFilter('filter-limit')||'20';const shown=limit==='all'?records:records.slice(0,Number(limit)||20);const list=document.getElementById('saved-records');if(!list)return;const rows=shown.map(record=>{const f=record.fields||{};const title=primaryValue(record,window.WORK_RECORD_PAGE.titleFields||[]);const date=primaryValue(record,window.WORK_RECORD_PAGE.dateFields||[]);const meta=(record.updated_at||record.created_at||'').replace('T',' ').slice(0,16);const id=escapeJs(record.record_id);return `<div class="check-item"><b>${escapeHtml(title)}</b> <span class="status ok">分析正本</span> ${escapeHtml(date)} ${escapeHtml(f['分析時刻']||'')}<br><small>対象工程: ${escapeHtml(f['対象工程']||'未入力')} / 日数・日順: ${escapeHtml(f['日数日順']||'未入力')} / ${escapeHtml(analysisSummary(record))} / 更新 ${escapeHtml(meta)}</small><div class="actions"><button class="btn" type="button" onclick="editRecord('${id}')">入力欄へ戻して編集</button><button class="btn" type="button" onclick="duplicateRecord('${id}')">複製して入力</button><button class="btn danger" type="button" onclick="deleteRecord('${id}')">削除</button></div></div>`;}).join('');list.innerHTML=rows||'<div class="empty-note">条件に合う保存済み記録はありません。</div>';const count=document.getElementById('record-count');if(count)count.textContent=`端末内保存 ${all.length}件 / 表示対象 ${records.length}件 / 表示 ${shown.length}件`;}
+document.addEventListener('DOMContentLoaded',()=>{renderRecords();updateEditState();});
 </script>
-  <script src="assets/ui.js?v=20260710independent01" defer></script>
+  <script src="assets/ui.js?v=20260710analysis01" defer></script>
 </body>
 </html>
