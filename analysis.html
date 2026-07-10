@@ -5,7 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2f4257">
   <title>分析記録</title>
-  <link rel="stylesheet" href="assets/base.css?v=20260710analysis01">
+  <link rel="stylesheet" href="assets/base.css?v=20260710analysisExcelUi02">
+  <style>
+    /* 分析記録だけの表型入力。base.cssは壊さず、Excel分析表に近い密度へ寄せる。 */
+    .analysis-workbook-panel{background:#fff;border:1px solid var(--border,#d8dee7);border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(15,23,42,.04);}
+    .analysis-workbook-title{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:10px;border-bottom:1px solid var(--border,#d8dee7);padding-bottom:8px;}
+    .analysis-workbook-title h2{margin:0;font-size:1.05rem;}
+    .analysis-workbook-title small{color:var(--muted,#65738a);}
+    .analysis-table{display:grid;grid-template-columns:92px repeat(8,minmax(64px,1fr));border-top:1px solid var(--border,#d8dee7);border-left:1px solid var(--border,#d8dee7);overflow:hidden;border-radius:8px;background:#fff;}
+    .analysis-table .cell{min-width:0;border-right:1px solid var(--border,#d8dee7);border-bottom:1px solid var(--border,#d8dee7);padding:4px;background:#fff;}
+    .analysis-table .row-head{display:flex;align-items:center;justify-content:center;font-weight:700;background:#f1f5f9;color:#233247;font-size:.8rem;}
+    .analysis-table label{display:block;font-size:.72rem;line-height:1.15;color:#334155;margin:0 0 2px;white-space:nowrap;}
+    .analysis-table input,.analysis-table select,.analysis-table textarea{width:100%;min-height:30px;padding:4px 6px;border:1px solid #c7d0dc;border-radius:6px;background:#fff;font-size:.95rem;box-sizing:border-box;}
+    .analysis-table input.short-num{font-variant-numeric:tabular-nums;text-align:center;}
+    .analysis-table textarea{min-height:30px;resize:vertical;}
+    .analysis-table .span-2{grid-column:span 2;}
+    .analysis-table .span-3{grid-column:span 3;}
+    .analysis-table .span-4{grid-column:span 4;}
+    .analysis-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;}
+    .analysis-filter-grid{display:grid;grid-template-columns:130px 130px 130px minmax(180px,1fr) 110px 110px;gap:8px;align-items:end;}
+    .analysis-filter-grid .field{margin:0;}
+    .analysis-filter-grid input,.analysis-filter-grid select{min-height:32px;}
+    @media (max-width:900px){.analysis-table{grid-template-columns:80px repeat(4,minmax(62px,1fr));}.analysis-table .span-2,.analysis-table .span-3,.analysis-table .span-4{grid-column:span 4;}.analysis-filter-grid{grid-template-columns:1fr 1fr;}}
+    @media (max-width:560px){.analysis-table{grid-template-columns:72px repeat(2,minmax(70px,1fr));}.analysis-table .span-2,.analysis-table .span-3,.analysis-table .span-4{grid-column:span 2;}.analysis-workbook-panel{padding:8px;}.analysis-filter-grid{grid-template-columns:1fr;}}
+    body.dark .analysis-workbook-panel, body.dark .analysis-table, body.dark .analysis-table .cell{background:#1f2937;}
+    body.dark .analysis-table .row-head{background:#111827;color:#e5e7eb;}
+    body.dark .analysis-table label{color:#d1d5db;}
+    body.dark .analysis-table input, body.dark .analysis-table select, body.dark .analysis-table textarea{background:#111827;color:#f9fafb;border-color:#475569;}
+  </style>
 </head>
 <body>
   <div class="tool-nav">
@@ -18,49 +45,45 @@
       <p>日々の分析入力をここで保存します。酒母製造・醪経過・酒類側へは保存時に自動同期せず、後段で候補取り込み・参照表示します。</p>
     </section>
     <div class="wrapper wide">
-      <section class="input-block">
-        <h2>分析対象</h2>
-        <p class="empty-note">分析日、対象工程、対象ID/仕込号/T.No のどれかを入れておくと、後で酒母・醪・酒類側の候補として拾いやすくなります。未入力でも保存はできます。</p>
-        <div class="form-grid">
-          <div class="field"><label>分析日</label><input data-field="分析日" type="date"></div>
-          <div class="field"><label>分析時刻</label><input data-field="分析時刻" type="time" step="1"></div>
-          <div class="field"><label>対象工程</label><select data-field="対象工程"><option>酒母</option><option>醪</option><option>酒類</option><option>その他</option></select></div>
-          <div class="field"><label>対象ID / 対象名</label><input data-field="対象ID" placeholder="酒母号 / 仕込号 / タンク番号"></div>
-          <div class="field"><label>仕込号</label><input data-field="仕込号" placeholder="例：12号"></div>
-          <div class="field"><label>T.No</label><input data-field="TNo" placeholder="タンク番号など"></div>
-          <div class="field"><label>サンプル種類</label><input data-field="サンプル種類" placeholder="酒母 / 醪 / 製成酒など"></div>
-          <div class="field"><label>日数 / 日順</label><input data-field="日数日順" inputmode="numeric" placeholder="酒母日数・醪日順など"></div>
+      <section class="analysis-workbook-panel">
+        <div class="analysis-workbook-title"><div><h2>分析入力</h2><small>月別分析表・酒母経過表に合わせた横並び入力です。分析記録を正本にし、酒母・醪へ保存時の自動同期はしません。</small></div></div>
+        <div class="analysis-table" aria-label="分析入力表">
+          <div class="cell row-head">対象</div>
+          <div class="cell"><label>分析日</label><input data-field="分析日" type="date"></div>
+          <div class="cell"><label>時刻</label><input data-field="分析時刻" type="time" step="1"></div>
+          <div class="cell"><label>対象工程</label><select data-field="対象工程"><option>酒母</option><option>醪</option><option>酒類</option><option>その他</option></select></div>
+          <div class="cell"><label>サンプル</label><input data-field="サンプル種類" placeholder="酛/醪/酒"></div>
+          <div class="cell"><label>仕込号</label><input data-field="仕込号" class="short-num" placeholder="1"></div>
+          <div class="cell"><label>T.No</label><input data-field="TNo" class="short-num" placeholder="88"></div>
+          <div class="cell"><label>日数/日順</label><input data-field="日数日順" class="short-num" placeholder="踊/7卸"></div>
+          <div class="cell"><label>対象ID</label><input data-field="対象ID" placeholder="1号 T.No88"></div>
+
+          <div class="cell row-head">分析値</div>
+          <div class="cell"><label>ボーメ</label><input data-field="ボーメ" class="short-num" inputmode="decimal"></div>
+          <div class="cell"><label>日本酒度</label><input data-field="日本酒度" class="short-num" inputmode="decimal"></div>
+          <div class="cell"><label>酸度 ml</label><input data-field="酸度ml" class="short-num" inputmode="decimal"></div>
+          <div class="cell"><label>アミノ ml</label><input data-field="アミノ酸度ml" class="short-num" inputmode="decimal"></div>
+          <div class="cell"><label>アルコール %</label><input data-field="アルコール%" class="short-num" inputmode="decimal"></div>
+          <div class="cell"><label>グルコース</label><input data-field="グルコース" class="short-num" inputmode="decimal"></div>
+          <div class="cell"><label>品温 ℃</label><input data-field="品温℃" class="short-num" inputmode="decimal"></div>
+          <div class="cell"><label>室温 ℃</label><input data-field="室温気温℃" class="short-num" inputmode="decimal"></div>
+
+          <div class="cell row-head">採取</div>
+          <div class="cell"><label>採取 ml</label><input data-field="採取量ml" class="short-num" inputmode="decimal"></div>
+          <div class="cell"><label>使用 ml</label><input data-field="使用量ml" class="short-num" inputmode="decimal"></div>
+          <div class="cell"><label>廃棄 ml</label><input data-field="廃棄量ml" class="short-num" inputmode="decimal"></div>
+          <div class="cell span-4"><label>処分内容・備考</label><textarea data-field="備考" placeholder="処分内容、分析メモ、異常、再測定など"></textarea></div>
+          <div class="cell"><label>元表値</label><input data-field="ボーメ日本酒度" class="short-num" placeholder="取込用"></div>
         </div>
-      </section>
-      <section class="input-block">
-        <h2>分析値</h2>
-        <div class="form-grid">
-          <div class="field"><label>ボーメ</label><input data-field="ボーメ" inputmode="decimal"></div>
-          <div class="field"><label>日本酒度</label><input data-field="日本酒度" inputmode="decimal"></div>
-          <div class="field"><label>アルコール %</label><input data-field="アルコール%" inputmode="decimal"></div>
-          <div class="field"><label>酸度 ml</label><input data-field="酸度ml" inputmode="decimal"></div>
-          <div class="field"><label>アミノ酸度 ml</label><input data-field="アミノ酸度ml" inputmode="decimal"></div>
-          <div class="field"><label>グルコース</label><input data-field="グルコース" inputmode="decimal"></div>
-          <div class="field"><label>品温 ℃</label><input data-field="品温℃" inputmode="decimal"></div>
-          <div class="field"><label>室温 / 気温 ℃</label><input data-field="室温気温℃" inputmode="decimal"></div>
-        </div>
-      </section>
-      <section class="input-block">
-        <h2>採取・処分</h2>
-        <div class="form-grid">
-          <div class="field"><label>採取量 ml</label><input data-field="採取量ml" inputmode="decimal"></div>
-          <div class="field"><label>使用量 ml</label><input data-field="使用量ml" inputmode="decimal"></div>
-          <div class="field"><label>廃棄量 ml</label><input data-field="廃棄量ml" inputmode="decimal"></div>
-          <div class="field memo-field"><label>処分内容・備考</label><textarea data-field="備考" placeholder="処分内容、分析メモ、異常、再測定など"></textarea></div>
-        </div>
-        <div class="actions"><button id="save-button" class="btn primary" type="button" onclick="saveRecord()">分析記録を保存</button><button class="btn" type="button" onclick="clearForm()">入力欄を空にする</button><button class="btn" type="button" onclick="cancelEdit()">編集をやめる</button></div>
+        <p class="empty-note">分析日・対象工程・対象ID/仕込号/T.No のどれかを入れておくと、後で酒母・醪・酒類側の候補として拾いやすくなります。未入力でも保存できます。</p>
+        <div class="analysis-actions"><button id="save-button" class="btn primary" type="button" onclick="saveRecord()">分析記録を保存</button><button class="btn" type="button" onclick="clearForm()">入力欄を空にする</button><button class="btn" type="button" onclick="cancelEdit()">編集をやめる</button></div>
         <div id="record-status" class="list-status"></div>
       </section>
       <section class="input-block">
         <h2>保存済み分析記録</h2>
         <p class="empty-note">分析記録はこの画面が正本です。ここで編集・削除しても、酒母製造・醪経過の保存済み記録を勝手に書き換えません。</p>
-        <div class="form-grid">
-          <div class="field"><label>対象工程で絞り込み</label><select id="filter-process"><option value="">すべて</option><option>酒母</option><option>醪</option><option>酒類</option><option>その他</option></select></div>
+        <div class="analysis-filter-grid">
+          <div class="field"><label>対象工程</label><select id="filter-process"><option value="">すべて</option><option>酒母</option><option>醪</option><option>酒類</option><option>その他</option></select></div>
           <div class="field"><label>分析日 開始</label><input id="filter-date-start" type="date"></div>
           <div class="field"><label>分析日 終了</label><input id="filter-date-end" type="date"></div>
           <div class="field"><label>キーワード</label><input id="filter-keyword" placeholder="仕込号 / T.No / 対象ID / 備考"></div>
@@ -73,7 +96,7 @@
       </section>
     </div>
   </main>
-  <script>window.WORK_RECORD_PAGE={"process":"analysis","label":"分析記録","storageKey":"workRecordAnalysisRecordsV1","idPrefix":"analysis","titleFields":["対象ID","仕込号","TNo"],"dateFields":["分析日"],"summaryFields":["対象工程","ボーメ","日本酒度","アルコール%","酸度ml","アミノ酸度ml","グルコース","品温℃"]};</script>
+  <script>window.WORK_RECORD_PAGE={"process":"analysis","label":"分析記録","storageKey":"workRecordAnalysisRecordsV1","idPrefix":"analysis","titleFields":["対象ID","仕込号","TNo"],"dateFields":["分析日"],"summaryFields":["対象工程","ボーメ日本酒度","ボーメ","日本酒度","アルコール%","酸度ml","アミノ酸度ml","グルコース","品温℃"]};</script>
   <script>
 const RECORD_KEY=window.WORK_RECORD_PAGE.storageKey;
 const RECORD_LABEL=window.WORK_RECORD_PAGE.label;
@@ -105,10 +128,10 @@ function fillFormFromRecord(record,asEdit){document.querySelectorAll('[data-fiel
 function editRecord(id){const record=readRecords().find(r=>r.record_id===id);if(!record){alert('記録が見つかりません。');return;}fillFormFromRecord(record,true);}
 function duplicateRecord(id){const record=readRecords().find(r=>r.record_id===id);if(!record){alert('記録が見つかりません。');return;}fillFormFromRecord(record,false);}
 function deleteRecord(id){const records=readRecords();const record=records.find(r=>r.record_id===id);if(!record){alert('記録が見つかりません。');return;}const title=primaryValue(record,window.WORK_RECORD_PAGE.titleFields||[]);if(!confirm(`分析記録を削除します。\n対象: ${title}\n\nこの操作では酒母製造・醪経過の保存済み記録は変更しません。`))return;const next=records.filter(r=>r.record_id!==id);writeRecords(next);if(editingRecordId===id){editingRecordId='';updateEditState();}setStatus(`分析記録を削除しました。端末内保存 ${next.length}件。`);renderRecords();}
-function analysisSummary(record){const f=record.fields||{};const names=['ボーメ','日本酒度','アルコール%','酸度ml','アミノ酸度ml','グルコース','品温℃'];return names.map(name=>`${name}: ${f[name]||'未入力'}`).join(' / ');}
+function analysisSummary(record){const f=record.fields||{};const names=['ボーメ日本酒度','ボーメ','日本酒度','アルコール%','酸度ml','アミノ酸度ml','グルコース','品温℃'];return names.map(name=>`${name}: ${f[name]||'未入力'}`).join(' / ');}
 function renderRecords(){const all=readRecords();let records=filteredRecords();const limit=getFilter('filter-limit')||'20';const shown=limit==='all'?records:records.slice(0,Number(limit)||20);const list=document.getElementById('saved-records');if(!list)return;const rows=shown.map(record=>{const f=record.fields||{};const title=primaryValue(record,window.WORK_RECORD_PAGE.titleFields||[]);const date=primaryValue(record,window.WORK_RECORD_PAGE.dateFields||[]);const meta=(record.updated_at||record.created_at||'').replace('T',' ').slice(0,16);const id=escapeJs(record.record_id);return `<div class="check-item"><b>${escapeHtml(title)}</b> <span class="status ok">分析正本</span> ${escapeHtml(date)} ${escapeHtml(f['分析時刻']||'')}<br><small>対象工程: ${escapeHtml(f['対象工程']||'未入力')} / 日数・日順: ${escapeHtml(f['日数日順']||'未入力')} / ${escapeHtml(analysisSummary(record))} / 更新 ${escapeHtml(meta)}</small><div class="actions"><button class="btn" type="button" onclick="editRecord('${id}')">入力欄へ戻して編集</button><button class="btn" type="button" onclick="duplicateRecord('${id}')">複製して入力</button><button class="btn danger" type="button" onclick="deleteRecord('${id}')">削除</button></div></div>`;}).join('');list.innerHTML=rows||'<div class="empty-note">条件に合う保存済み記録はありません。</div>';const count=document.getElementById('record-count');if(count)count.textContent=`端末内保存 ${all.length}件 / 表示対象 ${records.length}件 / 表示 ${shown.length}件`;}
 document.addEventListener('DOMContentLoaded',()=>{renderRecords();updateEditState();});
 </script>
-  <script src="assets/ui.js?v=20260710analysis01" defer></script>
+  <script src="assets/ui.js?v=20260710analysisExcelUi02" defer></script>
 </body>
 </html>
