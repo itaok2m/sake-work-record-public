@@ -4,52 +4,60 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2f4257">
-  <title>麹製造</title>
+  <title>分析記録</title>
   <link rel="stylesheet" href="assets/base.css?v=20260710independent01">
 </head>
 <body>
   <div class="tool-nav">
     <a class="back-btn" href="flowchart.html">← 工程別記録へ戻る</a>
-    <div class="tool-nav-place"><span class="tool-nav-title">麹製造</span></div>
+    <div class="tool-nav-place"><span class="tool-nav-title">分析記録</span></div>
   </div>
   <main class="tool-body">
     <section class="screen-lead">
-      <h1>麹製造</h1>
+      <h1>分析記録</h1>
     </section>
     <div class="wrapper wide">
       <section class="input-block">
-        <h2>麹基本情報</h2>
-        <p class="empty-note">原料処理の米情報は、後段で候補取り込みにします。保存時に原料処理側を自動で書き換えません。</p>
+        <h2>分析対象</h2>
+        <p class="empty-note">この画面の分析記録を正本にします。酒母製造・醪経過・酒類側へは、保存時に自動同期せず、後段で候補取り込みします。</p>
         <div class="form-grid">
-          <div class="field"><label>BY</label><select data-field="BY"><option>R7BY</option><option>R8BY</option></select></div>
-          <div class="field"><label>用途</label><select data-field="用途"><option>酛麹</option><option>添麹</option><option>仲麹</option><option>留麹</option><option>四段麹</option><option>その他</option></select></div>
-          <div class="field"><label>記号・順号</label><input data-field="記号・順号" placeholder="例：酛1 / 仕込12号"></div>
-          <div class="field"><label>引込日</label><input data-field="引込日" type="date"></div>
-          <div class="field"><label>引込時刻</label><input data-field="引込時刻" type="time" step="1"></div>
-          <div class="field"><label>白米数量 kg</label><input data-field="白米数量kg" inputmode="decimal" placeholder="kg"></div>
-          <div class="field"><label>種麹</label><input data-field="種麹" placeholder="種類・量"></div>
-          <div class="field"><label>使用先</label><input data-field="使用先" placeholder="酒母番号 / 仕込号など"></div>
+          <div class="field"><label>分析日</label><input data-field="分析日" type="date"></div>
+          <div class="field"><label>対象工程</label><select data-field="対象工程"><option>酒母</option><option>醪</option><option>酒類</option><option>その他</option></select></div>
+          <div class="field"><label>対象ID / 対象名</label><input data-field="対象ID" placeholder="酒母号 / 仕込号 / タンク番号"></div>
+          <div class="field"><label>仕込号</label><input data-field="仕込号" placeholder="例：12号"></div>
+          <div class="field"><label>T.No</label><input data-field="TNo" placeholder="タンク番号など"></div>
+          <div class="field"><label>サンプル種類</label><input data-field="サンプル種類" placeholder="酒母 / 醪 / 製成酒など"></div>
+          <div class="field"><label>日数 / 日順</label><input data-field="日数日順" inputmode="numeric"></div>
         </div>
       </section>
       <section class="input-block">
-        <h2>製麹経過</h2>
-        <div class="rice-card-list"><article class="rice-card"><div class="rice-card-head"><div><h3>操作カード</h3><span class="card-meta">切返・盛・仲仕事・仕舞仕事・出麹など</span></div></div><div class="rice-main-grid">
-          <div class="field compact-field"><label>操作</label><select data-field="操作"><option>引込</option><option>切返</option><option>盛</option><option>仲仕事</option><option>仕舞仕事</option><option>最高積替</option><option>出麹</option><option>その他</option></select></div>
-          <div class="field compact-field"><label>操作日</label><input data-field="操作日" type="date"></div>
-          <div class="field compact-field"><label>操作時刻</label><input data-field="操作時刻" type="time" step="1"></div>
-          <div class="field compact-field"><label>在室時間 h</label><input data-field="在室時間h" inputmode="decimal" placeholder="後段で自動化候補"></div>
-          <div class="field compact-field"><label>品温 ℃</label><input data-field="品温℃" inputmode="decimal"></div>
-          <div class="field compact-field"><label>室温 ℃</label><input data-field="室温℃" inputmode="decimal"></div>
-          <div class="field compact-field"><label>湿度 %</label><input data-field="湿度%" inputmode="decimal"></div>
-          <div class="field compact-field memo-field"><label>状貌・備考</label><textarea data-field="備考" placeholder="ハゼ、乾き、香り、手入れ判断など"></textarea></div>
-        </div></article></div>
-        <div class="actions"><button class="btn primary" type="button" onclick="saveRecord()">麹製造を保存</button><button class="btn" type="button" onclick="clearForm()">入力欄を空にする</button></div>
+        <h2>分析値</h2>
+        <div class="form-grid">
+          <div class="field"><label>ボーメ</label><input data-field="ボーメ" inputmode="decimal"></div>
+          <div class="field"><label>日本酒度</label><input data-field="日本酒度" inputmode="decimal"></div>
+          <div class="field"><label>アルコール %</label><input data-field="アルコール%" inputmode="decimal"></div>
+          <div class="field"><label>酸度 ml</label><input data-field="酸度ml" inputmode="decimal"></div>
+          <div class="field"><label>アミノ酸度 ml</label><input data-field="アミノ酸度ml" inputmode="decimal"></div>
+          <div class="field"><label>グルコース</label><input data-field="グルコース" inputmode="decimal"></div>
+          <div class="field"><label>品温 ℃</label><input data-field="品温℃" inputmode="decimal"></div>
+          <div class="field"><label>室温 / 気温 ℃</label><input data-field="室温気温℃" inputmode="decimal"></div>
+        </div>
+      </section>
+      <section class="input-block">
+        <h2>採取・処分</h2>
+        <div class="form-grid">
+          <div class="field"><label>採取量</label><input data-field="採取量" inputmode="decimal"></div>
+          <div class="field"><label>使用量</label><input data-field="使用量" inputmode="decimal"></div>
+          <div class="field"><label>廃棄量</label><input data-field="廃棄量" inputmode="decimal"></div>
+          <div class="field memo-field"><label>処分内容・備考</label><textarea data-field="備考" placeholder="処分内容、分析メモ、異常、再測定など"></textarea></div>
+        </div>
+        <div class="actions"><button class="btn primary" type="button" onclick="saveRecord()">分析記録を保存</button><button class="btn" type="button" onclick="clearForm()">入力欄を空にする</button></div>
         <div id="record-status" class="list-status"></div>
       </section>
-      <section class="input-block"><h2>保存済み麹製造</h2><div id="record-count" class="list-status"></div><div id="saved-records" class="check-list"></div></section>
+      <section class="input-block"><h2>保存済み分析記録</h2><div id="record-count" class="list-status"></div><div id="saved-records" class="check-list"></div></section>
     </div>
   </main>
-  <script>window.WORK_RECORD_PAGE={"process": "koji", "label": "麹製造", "storageKey": "workRecordKojiRecordsV1", "idPrefix": "koji", "titleFields": ["記号・順号", "用途"], "dateFields": ["引込日", "操作日"], "summaryFields": ["用途", "白米数量kg", "操作", "品温℃", "使用先"]};</script>
+  <script>window.WORK_RECORD_PAGE={"process": "analysis", "label": "分析記録", "storageKey": "workRecordAnalysisRecordsV1", "idPrefix": "analysis", "titleFields": ["対象ID", "仕込号", "TNo"], "dateFields": ["分析日"], "summaryFields": ["対象工程", "ボーメ", "日本酒度", "アルコール%", "酸度ml"]};</script>
   <script>
 const RECORD_KEY=window.WORK_RECORD_PAGE.storageKey;
 const RECORD_LABEL=window.WORK_RECORD_PAGE.label;
