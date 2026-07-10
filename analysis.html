@@ -38,7 +38,6 @@
     .analysis-view-controls{display:grid;grid-template-columns:120px 96px 96px 150px 120px 110px;gap:8px;align-items:end;}
     .analysis-table-view .date-group-cell{background:#eef6ff;color:#172033;font-weight:800;text-align:center;vertical-align:middle;min-width:96px;}
     .analysis-table-view .date-group-cell .date-main{display:block;line-height:1.15;}
-    .analysis-table-view .date-group-cell .count{display:block;font-weight:600;color:#475569;font-size:.78rem;margin-top:4px;}
     .analysis-table-view .date-group-cell .btn{margin-top:6px;font-size:.78rem;padding:4px 8px;min-height:28px;}
     .analysis-table-view tr.view-note td{background:#f8fafc;color:#475569;font-size:.84rem;}
     .analysis-table-view{margin-top:10px;overflow:auto;border:1px solid var(--border,#d8dee7);border-radius:10px;background:#fff;}
@@ -247,7 +246,7 @@ function filteredRecords(){const sample=getFilter('filter-sample');const shikomi
 function openDateFromRow(date){document.getElementById('daily-date').value=date;openDailyRecords();window.scrollTo({top:0,behavior:'smooth'});}
 function consecutiveDateGroups(records){const groups=[];for(const record of records){const date=getField(record,'分析日')||'未日付';const last=groups[groups.length-1];if(last&&last.key===date){last.records.push(record);}else{groups.push({key:date,records:[record]});}}return groups;}
 function renderRecordCells(r){return `<td>${escapeHtml(getField(r,'サンプル種類'))}</td><td class="num">${escapeHtml(getField(r,'日数'))}</td><td class="num">${escapeHtml(getField(r,'仕込号'))}</td><td class="num">${escapeHtml(getField(r,'TNo'))}</td><td class="num">${escapeHtml(getField(r,'ボーメ日本酒度'))}</td><td class="num">${escapeHtml(getField(r,'酸'))}</td><td class="num">${escapeHtml(getField(r,'アミノ酸'))}</td><td class="num">${escapeHtml(getField(r,'アルコール'))}</td><td>${escapeHtml(getField(r,'メモ'))}</td>`;}
-function renderDateGroup(g){return g.records.map((r,idx)=>{const dateCell=idx===0?`<td class="date-group-cell" rowspan="${g.records.length}"><span class="date-main">${escapeHtml(g.key)}</span><span class="count">${g.records.length}件</span><button class="btn no-print" type="button" onclick="openDateFromRow('${escapeHtml(g.key)}')">この日を編集</button></td>`:'';return `<tr>${dateCell}${renderRecordCells(r)}</tr>`;}).join('');}
+function renderDateGroup(g){return g.records.map((r,idx)=>{const dateCell=idx===0?`<td class="date-group-cell" rowspan="${g.records.length}"><span class="date-main">${escapeHtml(g.key)}</span><button class="btn no-print" type="button" onclick="openDateFromRow('${escapeHtml(g.key)}')">この日を編集</button></td>`:'';return `<tr>${dateCell}${renderRecordCells(r)}</tr>`;}).join('');}
 function renderRecords(){refreshMoromiDayFilterOptions();const all=readRecords();let records=filteredRecords();const limit=getFilter('filter-limit')||'100';const shown=limit==='all'?records:records.slice(0,Number(limit)||100);const container=document.getElementById('saved-records');if(!container)return;const groups=consecutiveDateGroups(shown);
   let body=`<tr class="view-note"><td colspan="10">日付セルと「この日を編集」は同じ日のまとまりに1つだけ表示します。仕込号・T.No・醪日数・作業で絞り込みます。表示順は日付の新旧だけに絞り、醪日数別・作業別は専用プルダウンで確認します。醪日数は保存済み分析記録に実在する候補だけを表示します。</td></tr>`;
   body+=groups.map(renderDateGroup).join('');
