@@ -4,69 +4,59 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2f4257">
-  <title>麹製造</title>
-  <link rel="stylesheet" href="assets/base.css?v=20260710independent01">
+  <title>麹製造 入力</title>
+  <link rel="stylesheet" href="assets/base.css?v=20260713kojiLedger26">
+  <style>
+    .koji-event-editor{min-width:1320px}.koji-event-editor input,.koji-event-editor select,.koji-event-editor textarea{min-width:82px;font-size:.86rem;padding:7px}.koji-event-editor textarea{min-width:180px;min-height:54px}.koji-event-editor th{white-space:nowrap}.koji-event-editor .small-btn{padding:.45rem .6rem;min-height:38px}.ledger-caption{border-left:5px solid var(--blue);padding:.55rem .75rem;background:var(--blue-2);margin:.6rem 0}.source-note{background:var(--yellow-2);border:1px solid rgba(165,106,0,.35);border-radius:12px;padding:10px}.edit-status{display:flex;justify-content:space-between;gap:12px;align-items:center}.required-mark{color:var(--red);margin-left:.2rem}.danger-inline{margin-top:14px}
+    @media(max-width:720px){.edit-status{align-items:stretch;flex-direction:column}.koji-event-editor{min-width:1240px}}
+  </style>
 </head>
-<body>
-  <div class="tool-nav">
-    <a class="back-btn" href="flowchart.html">← 工程別記録へ戻る</a>
-    <div class="tool-nav-place"><span class="tool-nav-title">麹製造</span></div>
-  </div>
+<body data-page="koji-input">
+  <div class="tool-nav"><a class="back-btn" href="flowchart.html">← 工程別記録へ戻る</a><div class="tool-nav-place"><span class="tool-nav-title">麹製造 入力</span></div></div>
   <main class="tool-body">
     <section class="screen-lead">
-      <h1>麹製造</h1>
+      <h1>麹製造 入力</h1>
+      <p>手書きのこうじ製造台帳と同じ時系列を保ち、1製造単位の基本情報と複数の製麹経過をまとめて記録します。</p>
+      <div class="actions"><a class="btn" href="koji-check.html">保存済み記録を確認</a><a class="btn" href="reports-koji.html">麹製造を出力</a></div>
     </section>
     <div class="wrapper wide">
       <section class="input-block">
-        <h2>麹基本情報</h2>
-        <p class="empty-note">原料処理の米情報は、後段で候補取り込みにします。保存時に原料処理側を自動で書き換えません。</p>
+        <h2>編集対象</h2>
+        <div class="edit-status"><div><b id="kr-edit-target">新しい製造単位を入力中</b><div id="kr-input-status" class="list-status"></div></div><button class="btn" type="button" onclick="krResetInput()">新しい記録を開始</button></div>
+        <input type="hidden" id="kr-record-id">
+      </section>
+      <section class="input-block">
+        <h2>製造単位の基本情報</h2>
+        <p class="source-note">原料処理からの候補取り込みは次段階です。現在は手入力で保存し、原料処理側の記録を自動変更しません。</p>
         <div class="form-grid">
-          <div class="field"><label>BY</label><select data-field="BY"><option>R7BY</option><option>R8BY</option></select></div>
-          <div class="field"><label>用途</label><select data-field="用途"><option>酛麹</option><option>添麹</option><option>仲麹</option><option>留麹</option><option>四段麹</option><option>その他</option></select></div>
-          <div class="field"><label>記号・順号</label><input data-field="記号・順号" placeholder="例：酛1 / 仕込12号"></div>
-          <div class="field"><label>引込日</label><input data-field="引込日" type="date"></div>
-          <div class="field"><label>引込時刻</label><input data-field="引込時刻" type="time" step="1"></div>
-          <div class="field"><label>白米数量 kg</label><input data-field="白米数量kg" inputmode="decimal" placeholder="kg"></div>
-          <div class="field"><label>種麹</label><input data-field="種麹" placeholder="種類・量"></div>
-          <div class="field"><label>使用先</label><input data-field="使用先" placeholder="酒母番号 / 仕込号など"></div>
+          <div class="field"><label>BY</label><select data-base="BY"><option value="">未選択</option><option>R7BY</option><option>R8BY</option></select></div>
+          <div class="field"><label>用途</label><select data-base="use"><option value="">未選択</option><option>酛麹</option><option>添麹</option><option>仲麹</option><option>留麹</option><option>四段麹</option><option>その他</option></select></div>
+          <div class="field"><label>記号・順号<span class="required-mark">必須</span></label><input data-base="lot" placeholder="例：酛1、仕込12号"></div>
+          <div class="field"><label>原料処理参照ID</label><input data-base="sourceRef" placeholder="候補取り込み後に自動保持"></div>
+          <div class="field"><label>原料米</label><input data-base="riceType" placeholder="麹米など"></div>
+          <div class="field"><label>品種</label><input data-base="variety"></div>
+          <div class="field"><label>精米歩合 %</label><input data-base="polishing" inputmode="decimal"></div>
+          <div class="field"><label>白米数量 kg</label><input data-base="whiteRiceKg" inputmode="decimal"></div>
+          <div class="field"><label>引込日<span class="required-mark">必須</span></label><input data-base="hikikomiDate" type="date"></div>
+          <div class="field"><label>引込時刻</label><input data-base="hikikomiTime" type="time" step="1"></div>
+          <div class="field"><label>種麹</label><input data-base="taneKoji" placeholder="種類・使用量"></div>
+          <div class="field"><label>使用先</label><input data-base="destination" placeholder="酒母番号・仕込号など"></div>
+          <div class="field"><label>出麹日</label><input data-base="dekoujiDate" type="date"></div>
+          <div class="field"><label>出麹時刻</label><input data-base="dekoujiTime" type="time" step="1"></div>
+          <div class="field"><label>出麹数量 kg</label><input data-base="dekoujiKg" inputmode="decimal"></div>
+          <div class="field memo-field"><label>製造単位メモ</label><textarea data-base="note" placeholder="原料・使用先・異常・引継ぎなど"></textarea></div>
         </div>
       </section>
       <section class="input-block">
         <h2>製麹経過</h2>
-        <div class="rice-card-list"><article class="rice-card"><div class="rice-card-head"><div><h3>操作カード</h3><span class="card-meta">切返・盛・仲仕事・仕舞仕事・出麹など</span></div></div><div class="rice-main-grid">
-          <div class="field compact-field"><label>操作</label><select data-field="操作"><option>引込</option><option>切返</option><option>盛</option><option>仲仕事</option><option>仕舞仕事</option><option>最高積替</option><option>出麹</option><option>その他</option></select></div>
-          <div class="field compact-field"><label>操作日</label><input data-field="操作日" type="date"></div>
-          <div class="field compact-field"><label>操作時刻</label><input data-field="操作時刻" type="time" step="1"></div>
-          <div class="field compact-field"><label>在室時間 h</label><input data-field="在室時間h" inputmode="decimal" placeholder="後段で自動化候補"></div>
-          <div class="field compact-field"><label>品温 ℃</label><input data-field="品温℃" inputmode="decimal"></div>
-          <div class="field compact-field"><label>室温 ℃</label><input data-field="室温℃" inputmode="decimal"></div>
-          <div class="field compact-field"><label>湿度 %</label><input data-field="湿度%" inputmode="decimal"></div>
-          <div class="field compact-field memo-field"><label>状貌・備考</label><textarea data-field="備考" placeholder="ハゼ、乾き、香り、手入れ判断など"></textarea></div>
-        </div></article></div>
-        <div class="actions"><button class="btn primary" type="button" onclick="saveRecord()">麹製造を保存</button><button class="btn" type="button" onclick="clearForm()">入力欄を空にする</button></div>
-        <div id="record-status" class="list-status"></div>
+        <p class="ledger-caption">引込・種切・切返・盛・仲仕事・仕舞仕事・最高温度・出麹を、台帳と同じ時系列で記録します。在室時間が空欄の場合は、引込日時から自動計算して保存します。</p>
+        <div class="data-table-wrap"><table class="data-table koji-event-editor"><thead><tr><th>操作</th><th>月日</th><th>時刻</th><th>在室h</th><th>品温℃</th><th>室温℃</th><th>湿度%</th><th>乾球℃</th><th>湿球℃</th><th>状貌</th><th>備考</th><th class="no-print">行操作</th></tr></thead><tbody id="kr-event-body"></tbody></table></div>
+        <div class="actions no-print"><button id="kr-add-event" class="btn" type="button">経過行を追加</button><button class="btn primary" type="button" onclick="krSaveInput()">麹製造を保存</button><button class="btn" type="button" onclick="krResetInput()">入力を空にする</button></div>
+        <details id="kr-delete-current-wrap" class="danger-details danger-inline no-print" hidden><summary>この製造単位を削除</summary><p class="empty-note">編集対象の記録だけを削除します。全工程バックアップJSONを確認してから実行してください。</p><button class="btn danger" type="button" onclick="krDeleteCurrent()">この記録を削除</button></details>
       </section>
-      <section class="input-block"><h2>保存済み麹製造</h2><div id="record-count" class="list-status"></div><div id="saved-records" class="check-list"></div></section>
     </div>
   </main>
-  <script>window.WORK_RECORD_PAGE={"process": "koji", "label": "麹製造", "storageKey": "workRecordKojiRecordsV1", "idPrefix": "koji", "titleFields": ["記号・順号", "用途"], "dateFields": ["引込日", "操作日"], "summaryFields": ["用途", "白米数量kg", "操作", "品温℃", "使用先"]};</script>
-  <script>
-const RECORD_KEY=window.WORK_RECORD_PAGE.storageKey;
-const RECORD_LABEL=window.WORK_RECORD_PAGE.label;
-function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function nowIso(){return new Date().toISOString();}
-function compactId(){return Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
-function readRecords(){try{const raw=localStorage.getItem(RECORD_KEY);const parsed=raw?JSON.parse(raw):[];return Array.isArray(parsed)?parsed:[];}catch(_err){return [];}}
-function writeRecords(records){localStorage.setItem(RECORD_KEY,JSON.stringify(records));}
-function fieldValue(name){const el=document.querySelector(`[data-field="${name}"]`);return el?String(el.value||'').trim():'';}
-function setStatus(text){const el=document.getElementById('record-status');if(el)el.textContent=text;}
-function collectRecord(){const fields={};document.querySelectorAll('[data-field]').forEach(el=>{fields[el.dataset.field]=String(el.value||'').trim();});return {record_id:window.WORK_RECORD_PAGE.idPrefix+'_'+compactId(),schema:'workRecordThinRecordV01',process:window.WORK_RECORD_PAGE.process,label:RECORD_LABEL,created_at:nowIso(),updated_at:nowIso(),fields,candidate_imports:[],notes:'薄い実装。候補取り込み・グラフ・帳票は次段階。'};}
-function saveRecord(){try{const records=readRecords();const next=collectRecord();records.unshift(next);writeRecords(records);setStatus(`${RECORD_LABEL}を保存しました。端末内保存 ${records.length}件。正本化は全工程バックアップJSONで行います。`);renderRecords();}catch(err){alert('保存できませんでした。'+(err&&err.message?'\n'+err.message:''));}}
-function clearForm(){document.querySelectorAll('[data-field]').forEach(el=>{el.value='';});setStatus('入力欄を空にしました。保存済み記録は消していません。');}
-function primaryValue(record,names){for(const name of names){const value=record.fields&&record.fields[name];if(value)return value;}return '未入力';}
-function renderRecords(){const records=readRecords();const list=document.getElementById('saved-records');if(!list)return;const rows=records.slice(0,20).map(record=>{const title=primaryValue(record,window.WORK_RECORD_PAGE.titleFields||[]);const date=primaryValue(record,window.WORK_RECORD_PAGE.dateFields||[]);const meta=(record.updated_at||record.created_at||'').replace('T',' ').slice(0,16);const summary=window.WORK_RECORD_PAGE.summaryFields.map(name=>`${name}: ${record.fields?.[name]||'未入力'}`).join(' / ');return `<div class="check-item"><b>${escapeHtml(title)}</b><span class="status draft">端末内</span> ${escapeHtml(date)}<br><small>${escapeHtml(summary)} / 更新 ${escapeHtml(meta)}</small></div>`;}).join('');list.innerHTML=rows||'<div class="empty-note">保存済み記録はまだありません。</div>';const count=document.getElementById('record-count');if(count)count.textContent=`端末内保存 ${records.length}件`;}
-document.addEventListener('DOMContentLoaded',()=>{renderRecords();});
-</script>
-  <script src="assets/ui.js?v=20260710independent01" defer></script>
+  <script src="assets/koji-records.js?v=20260713kojiLedger26"></script>
+  <script src="assets/ui.js?v=20260713kojiLedger26" defer></script>
 </body>
 </html>
