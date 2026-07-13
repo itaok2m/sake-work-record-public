@@ -30,10 +30,11 @@ function aoSampleMatches(record,filterValue){if(!filterValue)return true;const s
 function aoWorkGroup(record){const explicit=aoGetField(record,'作業');if(explicit)return explicit;const sample=aoGetField(record,'サンプル種類');const day=aoGetField(record,'日数');const memo=aoGetField(record,'メモ');const combined=`${sample} ${day} ${memo}`;const rules=[['アル添前（上槽）',/アル添前|上槽前アル添|アル添|分割上槽|上槽/],['添加後（四段）',/添加後|四段後|四段添加後/],['上槽前',/上槽前/],['大吟検定',/大吟.*検定|検定.*大吟/],['検定',/検定/],['滓引後・滓酒',/滓引|滓酒|おり/],['合併',/合併/],['濾過後',/濾過/],['調合後',/調合/],['火入後',/火入/]];for(const [label,re] of rules){if(re.test(combined))return label;}return '';}
 function aoRecordMonthKey(record){const explicit=aoGetField(record,'分析月');if(/^\d{4}-\d{2}$/.test(explicit))return explicit;const m=aoRecordDate(record).match(/^(\d{4})-(\d{2})-/);return m?`${m[1]}-${m[2]}`:'';}
 function aoMonthLabel(key){const m=String(key||'').match(/^(\d{4})-(\d{2})$/);return m?`${Number(m[1])}年${Number(m[2])}月分析`:String(key||'');}
-function aoMoromiDayKey(record){const day=aoNormalizeDigits(aoGetField(record,'日数'));const memo=aoGetField(record,'メモ');const combined=`${day} ${memo}`;if(/酒母卸|卸/.test(combined))return '酒母卸';if(/踊/.test(combined))return '踊';const m=day.match(/^(\d+)(?:\.0+)?(?:日目?|日)?$/);if(m&&Number(m[1])>=3)return String(Number(m[1]));return '';}
+function aoIsMoromiRecord(record){const sample=aoGetField(record,'サンプル種類');const process=aoGetField(record,'対象工程');return /醪|もろみ/.test(sample)||(!sample&&/醪|もろみ/.test(process));}
+function aoMoromiDayKey(record){if(!aoIsMoromiRecord(record))return '';const day=aoNormalizeDigits(aoGetField(record,'日数'));const memo=aoGetField(record,'メモ');const combined=`${day} ${memo}`;if(/踊/.test(combined))return '踊';const m=day.match(/^(\d+)(?:\.0+)?(?:日目?|日)?$/);if(m&&Number(m[1])>=3)return String(Number(m[1]));return '';}
 function aoHasAnalysisValue(record){return ['ボーメ日本酒度','酸','アミノ酸','アルコール','グルコース'].some(name=>aoGetField(record,name)!=='');}
-function aoMoromiDayRank(key){if(key==='酒母卸')return 10;if(key==='踊')return 20;if(/^\d+$/.test(String(key)))return 100+Number(key);return 9000;}
-function aoMoromiDayLabel(key){if(key==='酒母卸'||key==='踊')return key;if(/^\d+$/.test(String(key)))return `${Number(key)}日目`;return String(key||'');}
+function aoMoromiDayRank(key){if(key==='踊')return 20;if(/^\d+$/.test(String(key)))return 100+Number(key);return 9000;}
+function aoMoromiDayLabel(key){if(key==='踊')return key;if(/^\d+$/.test(String(key)))return `${Number(key)}日目`;return String(key||'');}
 function aoShikomiSortValue(record){return aoNormalizeSearchValue(aoGetField(record,'仕込号'))||'zzzz';}
 function aoTnoSortValue(record){return aoNormalizeSearchValue(aoGetField(record,'TNo'))||'zzzz';}
 function aoGetValue(id){const el=document.getElementById(id);return el?String(el.value||'').trim():'';}
