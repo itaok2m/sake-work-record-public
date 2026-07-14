@@ -12,6 +12,9 @@ const KR_BASE_DEFAULTS = {
   dekoujiDate:'', dekoujiTime:'', dekoujiKg:'', note:''
 };
 
+let krLoadedBaseSnapshot = {...KR_BASE_DEFAULTS};
+let krLoadedEventSnapshots = new Map();
+
 function krEsc(value){return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function krEscXml(value){return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]));}
 function krText(value){return String(value ?? '').trim();}
@@ -34,6 +37,7 @@ function krLegacyBase(fields={}){
 
 function krNormalizeEvent(event={}){
   return {
+    ...event,
     event_id:event.event_id || krId('koji_event'), operation:krText(event.operation), date:krText(event.date), time:krText(event.time), hours:krText(event.hours),
     productTemp:krText(event.productTemp), roomTemp:krText(event.roomTemp), humidity:krText(event.humidity), dryBulb:krText(event.dryBulb), wetBulb:krText(event.wetBulb),
     appearance:krText(event.appearance), note:krText(event.note)
@@ -109,18 +113,17 @@ function krEventRowHtml(event={}){
   const e=krNormalizeEvent(event);
   return `<tr data-event-id="${krEsc(e.event_id)}"><td><select data-event-field="operation">${krEventOptions(e.operation)}</select></td><td><input data-event-field="date" type="date" value="${krEsc(e.date)}"></td><td><input data-event-field="time" type="time" step="1" value="${krEsc(e.time)}"></td><td><input data-event-field="hours" inputmode="decimal" value="${krEsc(e.hours)}"></td><td><input data-event-field="productTemp" inputmode="decimal" value="${krEsc(e.productTemp)}"></td><td><input data-event-field="roomTemp" inputmode="decimal" value="${krEsc(e.roomTemp)}"></td><td><input data-event-field="humidity" inputmode="decimal" value="${krEsc(e.humidity)}"></td><td><input data-event-field="dryBulb" inputmode="decimal" value="${krEsc(e.dryBulb)}"></td><td><input data-event-field="wetBulb" inputmode="decimal" value="${krEsc(e.wetBulb)}"></td><td><textarea data-event-field="appearance">${krEsc(e.appearance)}</textarea></td><td><textarea data-event-field="note">${krEsc(e.note)}</textarea></td><td><button class="btn small-btn" type="button" data-remove-event>行を外す</button></td></tr>`;
 }
-function krAddEvent(event={}){const body=document.getElementById('kr-event-body');if(body) body.insertAdjacentHTML('beforeend',krEventRowHtml(event));}
+function krAddEvent(event={}){const body=document.getElementById('kr-event-body');const normalized=krNormalizeEvent(event);krLoadedEventSnapshots.set(normalized.event_id,normalized);if(body)body.insertAdjacentHTML('beforeend',krEventRowHtml(normalized));}
 function krStandardEvents(){return KR_DEFAULT_OPERATIONS.map(operation=>krNormalizeEvent({operation}));}
 function krBaseElements(){return [...document.querySelectorAll('[data-base]')];}
-function krSetBase(base){krBaseElements().forEach(el=>{el.value=base?.[el.dataset.base] ?? '';});}
-function krGetBase(){const base={...KR_BASE_DEFAULTS};krBaseElements().forEach(el=>{base[el.dataset.base]=krText(el.value);});return base;}
-function krSetEvents(events){const body=document.getElementById('kr-event-body');if(!body)return;body.innerHTML='';(events?.length ? events : krStandardEvents()).forEach(krAddEvent);}
+function krSetBase(base){krLoadedBaseSnapshot={...KR_BASE_DEFAULTS,...(base || {})};krBaseElements().forEach(el=>{el.value=krLoadedBaseSnapshot[el.dataset.base] ?? '';});}
+function krGetBase(){const base={...krLoadedBaseSnapshot};krBaseElements().forEach(el=>{base[el.dataset.base]=krText(el.value);});return base;}
+function krSetEvents(events){const body=document.getElementById('kr-event-body');if(!body)return;body.innerHTML='';krLoadedEventSnapshots=new Map();(events?.length ? events : krStandardEvents()).forEach(krAddEvent);}
 function krGetEvents(){
-  const base=krGetBase();
   return [...document.querySelectorAll('#kr-event-body tr')].map(row=>{
-    const event={event_id:row.dataset.eventId || krId('koji_event')};
+    const eventId=row.dataset.eventId || krId('koji_event');
+    const event={...(krLoadedEventSnapshots.get(eventId) || {}),event_id:eventId};
     row.querySelectorAll('[data-event-field]').forEach(el=>{event[el.dataset.eventField]=krText(el.value);});
-    if(!event.hours && event.date && (base.hikikomiDate || event.operation==='引込')) event.hours=krCalcHours(base.hikikomiDate,base.hikikomiTime,event.date,event.time,event.operation);
     return krNormalizeEvent(event);
   });
 }
@@ -129,6 +132,38 @@ function krCalcHours(startDate,startTime,eventDate,eventTime,operation){
   if(!startDate || !eventDate) return '';
   const start=new Date(`${startDate}T${startTime || '00:00:00'}`);const end=new Date(`${eventDate}T${eventTime || '00:00:00'}`);
   const value=(end-start)/3600000;return Number.isFinite(value) && value>=0 ? value.toFixed(1) : '';
+}
+function krComparableTime(value){
+  const text=krText(value);const match=text.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  return match ? `${match[1].padStart(2,'0')}:${match[2]}:${match[3] || '00'}` : text;
+}
+function krReconcileLinkedDateTimes(base,events){
+  const nextBase={...base};const nextEvents=events.map(krNormalizeEvent);
+  const links=[
+    {operation:'引込',dateKey:'hikikomiDate',timeKey:'hikikomiTime'},
+    {operation:'出麹',dateKey:'dekoujiDate',timeKey:'dekoujiTime'}
+  ];
+  for(const link of links){
+    const linkedEvents=nextEvents.filter(event=>event.operation===link.operation);
+    if(!linkedEvents.length)continue;
+    const dateValues=[nextBase[link.dateKey],...linkedEvents.map(event=>event.date)].map(krText).filter(Boolean);
+    const uniqueDates=[...new Set(dateValues)];
+    if(uniqueDates.length>1)return {ok:false,message:`上段の${link.operation}日と、製麹経過の「${link.operation}」月日が一致していません。どちらかを同じ日付に直してください。`};
+    const timeValues=[nextBase[link.timeKey],...linkedEvents.map(event=>event.time)].map(krText).filter(Boolean);
+    const uniqueTimes=[...new Set(timeValues.map(krComparableTime))];
+    if(uniqueTimes.length>1)return {ok:false,message:`上段の${link.operation}時刻と、製麹経過の「${link.operation}」時刻が一致していません。どちらかを同じ時刻に直してください。`};
+    const dateValue=dateValues[0] || '';const timeValue=timeValues[0] || '';
+    nextBase[link.dateKey]=dateValue;nextBase[link.timeKey]=timeValue;
+    linkedEvents.forEach(event=>{event.date=dateValue;event.time=timeValue;if(link.operation==='引込')event.hours='0.0';});
+  }
+  return {ok:true,base:nextBase,events:nextEvents};
+}
+function krFillMissingHours(base,events){
+  return events.map(event=>{
+    const next=krNormalizeEvent(event);
+    if(!next.hours && next.date && (base.hikikomiDate || next.operation==='引込'))next.hours=krCalcHours(base.hikikomiDate,base.hikikomiTime,next.date,next.time,next.operation);
+    return next;
+  });
 }
 function krSetInputStatus(text){const el=document.getElementById('kr-input-status');if(el)el.textContent=text;}
 function krSetEditMode(record){
@@ -139,12 +174,15 @@ function krSetEditMode(record){
 function krLoadInput(record){krSetBase(record?.base || KR_BASE_DEFAULTS);krSetEvents(record?.events?.length ? record.events : krStandardEvents());krSetEditMode(record || null);krSetInputStatus(record ? '保存済み記録を開きました。保存すると同じ記録IDで更新します。' : '新しい麹製造を入力します。');window.scrollTo({top:0,behavior:'smooth'});}
 function krResetInput(){krLoadInput(null);history.replaceState(null,'','koji.html');}
 function krSaveInput(){
-  const base=krGetBase();
+  let base=krGetBase();
   if(!base.lot){alert('記号・順号を入力してください。');return;}
-  if(!base.hikikomiDate){alert('引込日を入力してください。');return;}
+  const reconciled=krReconcileLinkedDateTimes(base,krGetEvents());
+  if(!reconciled.ok){alert(reconciled.message);return;}
+  base=reconciled.base;const events=krFillMissingHours(base,reconciled.events);
+  if(!base.hikikomiDate){alert('引込日を入力してください。上段または製麹経過の「引込」行のどちらかに入力できます。');return;}
   const currentId=krText(document.getElementById('kr-record-id')?.value);
   const raw=krReadRaw();const currentRaw=raw.find(r=>r.record_id===currentId);const current=currentRaw ? krNormalize(currentRaw) : null;
-  const record={record_id:currentId || krId(),schema:KR_SCHEMA,process:'koji',label:'麹製造',created_at:current?.created_at || krNow(),updated_at:krNow(),base,events:krGetEvents(),candidate_imports:current?.candidate_imports || [],notes:'製造台帳型の麹製造記録。原料処理候補取り込みは未接続。'};
+  const record={...(current || {}),record_id:currentId || krId(),schema:KR_SCHEMA,process:'koji',label:'麹製造',created_at:current?.created_at || krNow(),updated_at:krNow(),base,events,candidate_imports:current?.candidate_imports || [],legacy_source:false,notes:'製造台帳型の麹製造記録。原料処理候補取り込みは未接続。'};
   const index=raw.findIndex(r=>r.record_id===record.record_id);if(index>=0)raw[index]=record;else raw.unshift(record);krWriteRaw(raw);krLoadInput(record);krSetInputStatus(`麹製造を${index>=0?'更新':'保存'}しました。端末内保存 ${raw.length}件。正本化は全工程バックアップJSONで行います。`);
 }
 function krDeleteCurrent(){
@@ -216,7 +254,7 @@ function krExportExcel(){let records=krFilter(krRecords(),krGetFilters());const 
 function krInitInput(){
   const id=new URLSearchParams(location.search).get('id');const record=id?krRecords().find(r=>r.record_id===id):null;krLoadInput(record || null);
   document.getElementById('kr-add-event')?.addEventListener('click',()=>krAddEvent({operation:'その他'}));
-  document.getElementById('kr-event-body')?.addEventListener('click',event=>{const button=event.target.closest('[data-remove-event]');if(!button)return;const row=button.closest('tr');if(document.querySelectorAll('#kr-event-body tr').length<=1){row.querySelectorAll('input,textarea').forEach(el=>el.value='');row.querySelector('select').value='その他';}else row.remove();});
+  document.getElementById('kr-event-body')?.addEventListener('click',event=>{const button=event.target.closest('[data-remove-event]');if(!button)return;const row=button.closest('tr');if(document.querySelectorAll('#kr-event-body tr').length<=1){krLoadedEventSnapshots.delete(row.dataset.eventId);row.querySelectorAll('input,textarea').forEach(el=>el.value='');row.querySelector('select').value='その他';}else{krLoadedEventSnapshots.delete(row.dataset.eventId);row.remove();}});
 }
 function krInitCheck(){krFillFilterOptions();krRenderList('kr-check-list',{withActions:true});}
 function krInitReport(){krFillFilterOptions();krRenderList('kr-report-preview');}
