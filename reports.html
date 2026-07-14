@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2f4257">
+  <title>出力・確認</title>
+  <link rel="stylesheet" href="assets/base.css?v=20260713reportsSplit22">
+</head>
+<body>
+  <div class="tool-nav">
+    <a class="back-btn" href="index.html">← トップへ戻る</a>
+    <div class="tool-nav-place"><span class="tool-nav-title">出力・確認</span></div>
+  </div>
+  <main class="tool-body">
+    <section class="screen-lead">
+      <h1>出力・確認</h1>
+      <p>保存済み記録から、人が読む資料を作る入口です。復元用バックアップとJSON読込はデータ管理で行います。</p>
+      <div class="actions"><a class="btn primary" href="data.html">データ管理へ</a></div>
+    </section>
+    <div class="wrapper wide">
+      <section class="top-entry-grid" aria-label="出力対象を選ぶ">
+        <a class="top-entry-card" href="reports-genryo.html">
+          <span class="top-entry-text">
+            <h2>原料処理の出力</h2>
+            <small>洗米日などで絞り込み、日別帳票・米明細・集計表をExcelまたは印刷用HTMLで作成します。</small>
+          </span>
+          <span class="top-entry-arrow">→</span>
+        </a>
+        <a class="top-entry-card" href="reports-analysis.html">
+          <span class="top-entry-text">
+            <h2>分析記録の出力</h2>
+            <small>分析記録画面と同じ条件で表示を確認し、その表示を印刷・PDF・Excelへ出力します。</small>
+          </span>
+          <span class="top-entry-arrow">→</span>
+        </a>
+      </section>
+
+      <section class="input-block">
+        <h2>人間用資料と復元用正本の区別</h2>
+        <div class="check-list">
+          <div class="check-item"><b>Excel</b><span class="status ok">人間用</span> 集計、追記、共有のための資料です。編集してもアプリ内データは変わりません。</div>
+          <div class="check-item"><b>印刷用HTML / PDF</b><span class="status ok">人間用</span> 現場確認、社内確認、印刷保存のための資料です。</div>
+          <div class="check-item"><b>JSONバックアップ</b><span class="status warn">復元用正本</span> データ管理画面で作成・復元します。</div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script>
+    if(location.hash==='#genryo-output-trial')location.replace('reports-genryo.html');
+    if(location.hash==='#analysis-output-trial')location.replace('reports-analysis.html');
+  </script>
+  <script src="assets/ui.js?v=20260713reportsSplit22" defer></script>
+</body>
+</html>

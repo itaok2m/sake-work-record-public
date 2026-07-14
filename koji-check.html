@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#2f4257">
+  <title>麹製造 確認</title><link rel="stylesheet" href="assets/base.css?v=20260713kojiLedger26">
+  <style>
+    .koji-filter{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}.koji-ledger{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0;box-shadow:var(--shadow)}.koji-ledger-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:8px}.koji-ledger-head h3{margin:0}.koji-base-table th{width:11%;background:var(--blue-2)}.koji-base-table td{width:14%}.koji-progress-table{min-width:1080px}.koji-progress-table .text-left{text-align:left}.koji-ledger-note{background:var(--yellow-2);border:1px solid rgba(165,106,0,.35);padding:8px;border-radius:10px}.record-actions{display:flex;gap:8px;flex-wrap:wrap}
+    @media(max-width:720px){.koji-filter{grid-template-columns:1fr}.koji-ledger-head{flex-direction:column}}
+  </style>
+</head>
+<body data-page="koji-check">
+  <div class="tool-nav"><a class="back-btn" href="flowchart.html">← 工程別記録へ戻る</a><div class="tool-nav-place"><span class="tool-nav-title">麹製造 確認</span></div></div>
+  <main class="tool-body">
+    <section class="screen-lead"><h1>麹製造 確認</h1><p>保存済みの麹製造を、手書き台帳に近い基本情報と時系列の経過表で確認・編集します。</p><div class="actions"><a class="btn primary" href="koji.html">麹製造を入力</a><a class="btn" href="reports-koji.html">麹製造を出力</a></div></section>
+    <div class="wrapper wide">
+      <section class="input-block"><h2>表示条件</h2><div class="koji-filter">
+        <div class="field"><label>BY</label><select id="kr-filter-by" onchange="krRenderCheck()"><option value="">すべて</option><option>R7BY</option><option>R8BY</option></select></div>
+        <div class="field"><label>用途</label><select id="kr-filter-use" onchange="krRenderCheck()"><option value="">すべて</option><option>酛麹</option><option>添麹</option><option>仲麹</option><option>留麹</option><option>四段麹</option><option>その他</option></select></div>
+        <div class="field"><label>引込月</label><select id="kr-filter-month" onchange="krRenderCheck()"><option value="">すべて</option></select></div>
+        <div class="field"><label>記号・使用先・備考</label><input id="kr-filter-q" oninput="krRenderCheck()"></div>
+        <div class="field"><label>表示順</label><select id="kr-filter-sort" onchange="krRenderCheck()"><option value="desc">新しい引込順</option><option value="asc">古い引込順</option></select></div>
+      </div><div class="actions no-print"><button class="btn" type="button" onclick="krClearFilters()">条件を空にする</button></div><div id="kr-list-status" class="list-status"></div></section>
+      <section class="input-block"><h2>保存済み麹製造</h2><div id="kr-check-list"></div></section>
+    </div>
+  </main>
+  <script src="assets/koji-records.js?v=20260713kojiLedger26"></script><script src="assets/ui.js?v=20260713kojiLedger26" defer></script>
+</body></html>

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2f4257">
+  <title>原料処理一覧</title>
+  <link rel="stylesheet" href="assets/base.css?v=20260630genryofields">
+</head>
+<body>
+  <div class="tool-nav">
+    <a class="back-btn" href="flowchart.html">← 工程別記録へ戻る</a>
+    <div class="tool-nav-place"><span class="tool-nav-title">原料処理一覧</span></div>
+  </div>
+  <main class="tool-body">
+    <section class="screen-lead">
+      <h1>原料処理一覧</h1>
+    </section>
+    <div class="wrapper wide">
+      <section class="input-block">
+        <h2>端末内保存状態</h2>
+        <div id="genryo-storage-status" class="list-status">保存状態を確認中</div>
+        <div class="actions split-actions filter-actions">
+          <button class="btn" type="button" onclick="runGenryoStorageSelfTest()">端末内保存テスト</button>
+          <button class="btn" type="button" onclick="copyGenryoStorageDiagnosis()">診断情報をコピー</button>
+        </div>
+        <p class="empty-note">この表示は、この端末・このブラウザ・このURLに保存されている原料処理記録の確認用です。別端末の記録は自動同期されません。データ管理でバックアップを読み込んだ後は、保存確認OK・件数一致を確認してください。</p>
+      </section>
+      <section class="input-block">
+        <h2>表示条件</h2>
+        <div class="form-grid">
+          <div class="field"><label>表示期間（洗米日）開始</label><input id="filter-wash-start" type="date" oninput="loadGenryoList()"></div>
+          <div class="field"><label>表示期間（洗米日）終了</label><input id="filter-wash-end" type="date" oninput="loadGenryoList()"></div>
+          <div class="field"><label>表示順</label><select id="filter-sort-order" onchange="loadGenryoList()"><option value="desc">新しい順</option><option value="asc">古い順</option></select></div>
+          <div class="field"><label>用途分類</label><select id="filter-kind" onchange="loadGenryoList()"><option value="">すべて</option><option>酛麹</option><option>酛掛</option><option>添麹</option><option>添掛</option><option>仲麹</option><option>仲掛</option><option>留麹</option><option>留掛</option><option>四段</option><option>その他</option></select></div>
+          <div class="field"><label>仕込号</label><input id="filter-shikomi" placeholder="例：2 / 2号 / A1" oninput="loadGenryoList()"></div>
+          <div class="field"><label>キーワード</label><input id="filter-keyword" placeholder="米品種・備考など" oninput="loadGenryoList()"></div>
+          <div class="field"><label>表示範囲</label><select id="filter-context-mode" onchange="loadGenryoList()"><option value="exact">一致分のみ</option><option value="wash">同日の他の洗米も表示</option></select></div>
+        </div>
+        <div class="actions split-actions filter-actions"><button class="btn" type="button" onclick="clearGenryoFilters()">条件クリア</button></div>
+        <div id="list-status" class="list-status">0件</div>
+      </section>
+      <section class="input-block">
+        <h2>日別・履歴別明細<small>1回保存した原料処理記録をカードでまとめ、用途明細は行で詰めて表示します。</small></h2>
+        <div class="genryo-action-panel">
+          <div class="genryo-action-row">
+            <a class="btn primary" href="senmai.html">原料処理を追加</a>
+          </div>
+          <p class="empty-note">原料処理一覧は、記録の確認・編集・端末内保存を扱います。帳票出力はトップの「出力・確認」、JSONバックアップの作成・読み込み・復元は「データ管理」から行います。</p>
+          <details class="common-info-toggle danger-details" data-fold data-fold-closed="全件削除（危険操作）" data-fold-open="全件削除（危険操作）">
+            <summary><span>全件削除（危険操作）</span><b>開く ▼</b></summary>
+            <div class="danger-panel">
+              <p>原料処理の保存記録を全件削除します。必要な場合は、先にトップの「データ管理」で全工程JSONバックアップを作成してください。</p>
+              <button class="btn danger" type="button" onclick="deleteAllGenryoRecords()">原料処理保存記録を全件削除</button>
+            </div>
+          </details>
+        </div>
+        <div id="import-export-status" class="list-status"></div>
+        <div id="genryo-record-list" class="record-list"></div>
+      </section>
+    </div>
+  </main>
+<script>
+const GENRYO_STORAGE_KEY='workRecordGenryoRecordsV1';
+const GENRYO_STORAGE_META_KEY='workRecordGenryoStorageMetaV1';
+const GENRYO_FILTER_STORAGE_KEY='workRecordGenryoListFiltersV1';
+const GENRYO_STORAGE_PROBE_KEY='workRecordGenryoStorageProbeV1';
+let __lastGenryoWriteCheck=null;
+function storageAvailable(){try{const key='__workRecordStorageTest__';localStorage.setItem(key,'1');localStorage.removeItem(key);return true;}catch(_err){return false;}}
+function inspectGenryoStorage(){const result={storage_ok:storageAvailable(),state:'unknown',message:'未確認',has_key:false,count:0,records:[],raw_length:0,error:''};try{const raw=localStorage.getItem(GENRYO_STORAGE_KEY);result.has_key=raw!==null;result.raw_length=raw?raw.length:0;if(raw===null){result.state='key_missing';result.message='保存キーなし';return result;}const parsed=JSON.parse(raw);if(!Array.isArray(parsed)){result.state='not_array';result.message='保存データ形式不正';return result;}result.records=parsed;result.count=parsed.length;result.state=parsed.length?'ok':'empty';result.message=parsed.length?'保存あり':'保存キーあり・0件';return result;}catch(err){result.state='parse_error';result.message='JSON解析エラー';result.error=err&&err.message?err.message:String(err);return result;}}
+function safeReadRecords(){const st=inspectGenryoStorage();return Array.isArray(st.records)?st.records:[];}
+function safeReadStorageMeta(){try{const raw=localStorage.getItem(GENRYO_STORAGE_META_KEY);const parsed=raw?JSON.parse(raw):null;return parsed&&typeof parsed==='object'?parsed:null;}catch(_err){return null;}}
+function safeReadStorageProbe(){try{const raw=localStorage.getItem(GENRYO_STORAGE_PROBE_KEY);const parsed=raw?JSON.parse(raw):null;return parsed&&typeof parsed==='object'?parsed:null;}catch(_err){return null;}}
+function safeWriteStorageMeta(meta){try{localStorage.setItem(GENRYO_STORAGE_META_KEY,JSON.stringify(meta));return true;}catch(_err){return false;}}
+function updateStorageMeta(action,records,extra={}){const count=Array.isArray(records)?records.length:0;safeWriteStorageMeta({last_action:action,last_count:count,last_at:new Date().toISOString(),page:location.pathname,origin:location.origin,...extra});}
+function verifyWriteRecords(records,action='保存',extra={}){const expected=Array.isArray(records)?records:[];const expectedCount=expected.length;const at=new Date().toISOString();try{localStorage.setItem(GENRYO_STORAGE_KEY,JSON.stringify(expected));localStorage.setItem(GENRYO_STORAGE_PROBE_KEY,JSON.stringify({last_write_at:at,last_action:action,expected_count:expectedCount,page:location.pathname,origin:location.origin}));const check=inspectGenryoStorage();const ok=(check.state==='ok'||check.state==='empty')&&check.count===expectedCount;const metaExtra={...extra,write_verified:ok,verified_count:check.count,verify_state:check.state,verify_message:check.message,verify_at:at};updateStorageMeta(action,expected,metaExtra);__lastGenryoWriteCheck={ok,expected_count:expectedCount,actual_count:check.count,state:check.state,message:check.message,at};return __lastGenryoWriteCheck;}catch(err){__lastGenryoWriteCheck={ok:false,expected_count:expectedCount,actual_count:0,state:'write_error',message:err&&err.message?err.message:String(err),at};updateStorageMeta(action,expected,{...extra,write_verified:false,verify_state:'write_error',verify_message:__lastGenryoWriteCheck.message,verify_at:at});return __lastGenryoWriteCheck;}}
+function safeWriteRecords(records,action='保存'){return verifyWriteRecords(records,action).ok;}
+function storageStatusHtml(records){const st=inspectGenryoStorage();const count=st.count;const ok=st.storage_ok;const meta=safeReadStorageMeta();const probe=safeReadStorageProbe();const lastAt=meta&&meta.last_at?new Date(meta.last_at).toLocaleString('ja-JP'):'未記録';const lastAction=meta&&meta.last_action?meta.last_action:'未記録';const lastCount=meta&&typeof meta.last_count==='number'?`${meta.last_count}件`:'未記録';const verifyText=meta&&meta.verify_at?`${meta.write_verified?'OK':'NG'} / ${meta.verified_count??'-'}件 / ${meta.verify_state||'-'}`:'未記録';const probeAt=probe&&probe.last_write_at?new Date(probe.last_write_at).toLocaleString('ja-JP'):'未記録';const place=`${location.origin}${location.pathname}`;let warn='';if(!ok){warn=' / ブラウザ保存不可';}else if(st.state==='key_missing'){warn=' / 保存キーなし';}else if(st.state==='parse_error'){warn=' / 保存データ破損';}else if(count===0&&meta&&meta.last_count>0){warn=' / 以前の保存記録情報あり・本体0件';}else if(count===0){warn=' / この端末には記録なし';}
+return `この端末の保存記録 ${count}件 / 保存テスト ${ok?'OK':'NG'} / 状態 ${escapeHtml(st.message)}${warn}<br>保存キー ${escapeHtml(GENRYO_STORAGE_KEY)} / キー有無 ${st.has_key?'あり':'なし'} / 文字数 ${st.raw_length}<br>最終操作 ${escapeHtml(lastAction)} / 最終件数 ${escapeHtml(lastCount)} / 最終日時 ${escapeHtml(lastAt)}<br>直近保存確認 ${escapeHtml(verifyText)} / 保存テスト最終 ${escapeHtml(probeAt)}<br>保存場所 ${escapeHtml(place)}`;}
+function refreshStorageStatus(records=safeReadRecords()){const el=document.getElementById('genryo-storage-status');if(el)el.innerHTML=storageStatusHtml(records);}
+function runGenryoStorageSelfTest(){const status=document.getElementById('import-export-status');try{const at=new Date().toISOString();localStorage.setItem(GENRYO_STORAGE_PROBE_KEY,JSON.stringify({last_write_at:at,last_action:'手動保存テスト',expected_count:safeReadRecords().length,page:location.pathname,origin:location.origin}));const probe=safeReadStorageProbe();if(!probe||probe.last_write_at!==at)throw new Error('保存テスト値を読み戻せませんでした');if(status)status.textContent='端末内保存テストOK。ページ更新・ブラウザ再起動・PC再起動後にも「保存テスト最終」が残るか確認してください。';}catch(err){if(status)status.textContent='端末内保存テストNG: '+(err&&err.message?err.message:String(err));}refreshStorageStatus();}
+function genryoStorageDiagnosisText(){const st=inspectGenryoStorage();const meta=safeReadStorageMeta();const probe=safeReadStorageProbe();return ['原料処理 保存診断',`URL: ${location.href}`,`origin: ${location.origin}`,`path: ${location.pathname}`,`storage_ok: ${st.storage_ok}`,`state: ${st.state}`,`message: ${st.message}`,`has_key: ${st.has_key}`,`count: ${st.count}`,`raw_length: ${st.raw_length}`,`meta: ${JSON.stringify(meta)}`,`probe: ${JSON.stringify(probe)}`].join('\n');}
+function copyGenryoStorageDiagnosis(){const text=genryoStorageDiagnosisText();const status=document.getElementById('import-export-status');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>{if(status)status.textContent='診断情報をコピーしました。';}).catch(()=>{window.prompt('診断情報をコピーしてください',text);});}else{window.prompt('診断情報をコピーしてください',text);}}
+function escapeHtml(value){return String(value||'').replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function compactDate(value){return value || '日付未入力';}
+function norm(value){const text=String(value||'');return (text.normalize?text.normalize('NFKC'):text).toLowerCase();}
+function normalizeShikomi(value){let text=String(value||'');text=text.normalize?text.normalize('NFKC'):text;return text.trim().replace(/\s+/g,'').replace(/^仕込(?:号)?/,'').replace(/号$/,'').toUpperCase();}
+function compactTime(value){return value || '-';}
+function recordSort(a,b){return norm(b.updated_at||b.created_at||b.wash_date).localeCompare(norm(a.updated_at||a.created_at||a.wash_date));}
+function compareDateText(a,b,direction='desc'){const av=norm(a);const bv=norm(b);if(!av&&!bv)return 0;if(!av)return 1;if(!bv)return -1;const cmp=av.localeCompare(bv);return direction==='asc'?cmp:-cmp;}
+function displayRecordSort(a,b){const direction=getFilters().sortOrder;const dateCmp=compareDateText(a.wash_date,b.wash_date,direction);if(dateCmp)return dateCmp;return recordSort(a,b);}
+function cardSearchText(card){return [card.usage_kind,card.shikomi_no,card.rice_variety,card.rice_polish,card.rice_kg,card.wash_start,card.wash_end,card.wash_duration,card.soak_start,card.soak_end,card.soak_duration,card.water_temp,card.kenjo_order,card.note].map(norm).join(' ');}
+function steamSearchText(record){const s=record.steam||{};const segs=Array.isArray(s.segments)?s.segments:[];return [s.actual_date,s.steam_in_time,s.boil_time,s.steam_through_time,s.steam_end_time,s.steaming_time_min,s.note,segs.map(seg=>[seg.label,seg.minutes,seg.raw_steam_pressure,seg.dry_steam_pressure].join(' ')).join(' ')].map(norm).join(' ');}
+function recordSearchText(record){return [record.wash_date,steamDate(record),steamSearchText(record),(record.rice_cards||[]).map(cardSearchText).join(' ')].map(norm).join(' ');}
+function recordTotal(record){let total=0;(record.rice_cards||[]).forEach(card=>{const v=parseFloat(String(card.rice_kg||'').replace(',','.'));if(!Number.isNaN(v))total+=v;});return total.toFixed(1)+' kg';}
+function steamDate(record){return record?.steam?.actual_date||'';}
+function cardKgValue(card){const v=parseFloat(String(card.rice_kg||'').replace(',','.'));return Number.isNaN(v)?0:v;}
+function uniqueText(values,limit=4){const items=[...new Set(values.map(v=>String(v||'').trim()).filter(Boolean))];if(!items.length)return '-';return items.length>limit?items.slice(0,limit).join(' / ')+` ほか${items.length-limit}`:items.join(' / ');}
+function recordLabel(record){return `${record.wash_date||'洗米日未入力'} → ${steamDate(record)||'蒸し実施日未入力'} / ${recordTotal(record)}`;}
+function recordActionsHtml(record){const id=encodeURIComponent(record.record_id||'');return `<div class="record-actions"><a class="btn compact primary" href="senmai.html?record_id=${id}">編集</a><button class="btn compact danger" type="button" onclick="deleteGenryoRecord('${id}')">削除</button></div>`;}
+function cardMiniHtml(card){return `<div class="record-mini-row"><b>${escapeHtml(card.usage_kind||'用途未選択')}</b><span>${escapeHtml(card.shikomi_no||'仕込号未入力')}</span><span>${escapeHtml(card.rice_variety||'品種未入力')}</span><span>${escapeHtml(card.rice_kg?card.rice_kg+'kg':'kg未入力')}</span></div>`;}
+function getFilters(){const shikomiRaw=(document.getElementById('filter-shikomi')?.value||'').trim();return {washStart:document.getElementById('filter-wash-start')?.value||'',washEnd:document.getElementById('filter-wash-end')?.value||'',sortOrder:document.getElementById('filter-sort-order')?.value||'desc',kind:document.getElementById('filter-kind')?.value||'',shikomiRaw,shikomi:normalizeShikomi(shikomiRaw),keyword:norm((document.getElementById('filter-keyword')?.value||'').trim()),view:'detail',context:document.getElementById('filter-context-mode')?.value||'exact'};}
+function saveFilterState(){try{const f=getFilters();localStorage.setItem(GENRYO_FILTER_STORAGE_KEY,JSON.stringify({washStart:f.washStart,washEnd:f.washEnd,sortOrder:f.sortOrder,kind:f.kind,shikomiRaw:f.shikomiRaw,keywordRaw:document.getElementById('filter-keyword')?.value||'',context:f.context}));}catch(_err){}}
+function restoreFilterState(){try{const raw=localStorage.getItem(GENRYO_FILTER_STORAGE_KEY);if(!raw)return;const f=JSON.parse(raw);const pairs=[['filter-wash-start',f.washStart],['filter-wash-end',f.washEnd],['filter-sort-order',f.sortOrder||'desc'],['filter-kind',f.kind],['filter-shikomi',f.shikomiRaw],['filter-keyword',f.keywordRaw],['filter-context-mode',f.context||'exact']];pairs.forEach(([id,value])=>{const el=document.getElementById(id);if(el&&value!==undefined&&value!==null)el.value=value;});}catch(_err){}}
+
+function hasAnyFilter(){const f=getFilters();return Boolean(f.washStart||f.washEnd||f.kind||f.shikomi||f.keyword);}
+function cardMatchesFilters(card,record,filters){if(filters.kind && card.usage_kind!==filters.kind)return false;if(filters.shikomi && normalizeShikomi(card.shikomi_no)!==filters.shikomi)return false;if(filters.keyword && !cardSearchText(card).includes(filters.keyword) && !steamSearchText(record).includes(filters.keyword) && !norm(record.wash_date+' '+steamDate(record)).includes(filters.keyword))return false;return true;}
+function recordMatches(record){const f=getFilters();if(f.washStart && norm(record.wash_date)<norm(f.washStart))return false;if(f.washEnd && norm(record.wash_date)>norm(f.washEnd))return false;const cards=record.rice_cards||[];if(f.kind && !cards.some(card=>card.usage_kind===f.kind))return false;if(f.shikomi && !cards.some(card=>normalizeShikomi(card.shikomi_no)===f.shikomi))return false;if(f.keyword && !recordSearchText(record).includes(f.keyword))return false;return true;}
+function filteredCards(record,forceAll=false){const cards=record.rice_cards||[];if(forceAll||!hasAnyFilter())return cards;const f=getFilters();return cards.filter(card=>cardMatchesFilters(card,record,f));}
+function cardsForDisplay(record,contextExpanded){return filteredCards(record,Boolean(contextExpanded));}
+function clearGenryoFilters(){['filter-wash-start','filter-wash-end','filter-kind','filter-shikomi','filter-keyword'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const sort=document.getElementById('filter-sort-order');if(sort)sort.value='desc';const ctx=document.getElementById('filter-context-mode');if(ctx)ctx.value='exact';loadGenryoList();}
+function contextRecords(all,matched){const f=getFilters();if(!hasAnyFilter()||f.context==='exact')return {records:matched,contextExpanded:false,contextLabel:'一致分のみ'};if(f.context==='wash'){const dates=new Set(matched.map(record=>record.wash_date).filter(Boolean));return {records:all.filter(record=>dates.has(record.wash_date)),contextExpanded:true,contextLabel:'同日の他の洗米も表示'};}return {records:matched,contextExpanded:false,contextLabel:'一致分のみ'};}
+function limitedRecords(records){return records;}
+function recordFieldHtml(label,value,wide=false){return `<span class="record-usage-field${wide?' wide':''}"><b>${escapeHtml(label)}</b><span>${escapeHtml(value||'-')}</span></span>`;}
+function riceVarietyDisplay(card){const variety=String(card.rice_variety||'').trim();const polish=String(card.rice_polish||'').trim().replace(/%$/,'');if(variety&&polish)return `${variety} ${polish}%`;if(variety)return variety;if(polish)return `精米 ${polish}%`;return '未入力';}
+function timeRangeDisplay(startValue,endValue,durationValue){const start=compactTime(startValue);const end=compactTime(endValue);const duration=durationValue&&durationValue!=='自動'?durationValue:'';const range=(start==='-'&&end==='-')?'-':`${start}→${end}`;return duration&&range!=='-'?`${range}（${duration}）`:range;}
+function washDisplay(card){return timeRangeDisplay(card.wash_start,card.wash_end,card.wash_duration);}
+function soakDisplay(card){return timeRangeDisplay(card.soak_start,card.soak_end,card.soak_duration);}
+function cardRowHtml(card){const fields=[recordFieldHtml('仕込',card.shikomi_no||'未入力'),recordFieldHtml('品種',riceVarietyDisplay(card),true),recordFieldHtml('白米',card.rice_kg?card.rice_kg+'kg':'未入力'),recordFieldHtml('洗米',washDisplay(card),true),recordFieldHtml('浸漬',soakDisplay(card),true),recordFieldHtml('水温',card.water_temp?card.water_temp+'℃':'未入力'),recordFieldHtml('検蒸順',card.kenjo_order||'-')];return `<div class="record-usage-row"><div class="record-usage-kind"><b>${escapeHtml(card.usage_kind||'用途未選択')}</b></div><div class="record-usage-fields">${fields.join('')}</div>${card.note?`<div class="record-note"><b>備考</b><span>${escapeHtml(card.note)}</span></div>`:''}</div>`;}
+function usageLineHtml(card){return cardRowHtml(card);}
+function usageCardHtml(card){return cardRowHtml(card);}
+function steamSegmentLine(segment){const parts=[segment.label||'区間未入力'];if(segment.minutes)parts.push(segment.minutes+'分');parts.push('生蒸気 '+(segment.raw_steam_pressure||'-')+' MPa');parts.push('乾燥蒸気 '+(segment.dry_steam_pressure||'-')+' MPa');return parts.map(escapeHtml).join(' / ');}
+function steamSummaryHtml(record){const s=record.steam||{};const head=[s.actual_date?'蒸し実施日 '+s.actual_date:'蒸し実施日未入力',s.steam_through_time?'蒸気抜け '+s.steam_through_time:'蒸気抜け未入力',s.steam_end_time?'蒸し終了 '+s.steam_end_time:'蒸し終了未入力',s.steaming_time_min?'蒸し時間 '+s.steaming_time_min+'分':'蒸し時間未計算'];const segs=Array.isArray(s.segments)?s.segments.filter(seg=>seg&&(seg.minutes||seg.raw_steam_pressure||seg.dry_steam_pressure)):[];const rows=[`<div class="record-row steam-record-row">${head.map(escapeHtml).join(' / ')}</div>`];if(segs.length){rows.push(`<details class="card-details record-steam-details" data-fold data-fold-closed="蒸気圧を見る" data-fold-open="蒸気圧を閉じる"><summary><span>蒸気圧を見る</span><b>開く ▼</b></summary><div class="record-steam-list">${segs.map(seg=>`<div class="record-row steam-record-row">${steamSegmentLine(seg)}</div>`).join('')}</div></details>`);}if(s.note){rows.push(`<div class="record-row steam-record-row"><b>メモ</b><span>${escapeHtml(s.note)}</span></div>`);}return rows.join('');}
+function recordMetaHtml(record,cards){const updated=record.updated_at?new Date(record.updated_at).toLocaleString('ja-JP'):'';return `${cards.length}表示 / 全${(record.rice_cards||[]).length}用途 / ${escapeHtml(recordTotal(record))} / 更新 ${escapeHtml(updated||'未記録')}`;}
+function recordHtml(record,contextExpanded=false){const cards=cardsForDisplay(record,contextExpanded);return `<article class="record-card"><div class="record-head"><div><h3>${escapeHtml(compactDate(record.wash_date))} → ${escapeHtml(compactDate(steamDate(record)))}</h3><span class="card-meta">${recordMetaHtml(record,cards)}</span></div>${recordActionsHtml(record)}</div><div class="record-row-list">${cards.length?cards.map(cardRowHtml).join(''):'<div class="empty-note">表示条件に合う用途明細はありません。</div>'}${steamSummaryHtml(record)}</div></article>`;}
+function recordCompactHtml(record,contextExpanded=false,index=0){const cards=cardsForDisplay(record,contextExpanded);const allCards=record.rice_cards||[];const s=record.steam||{};const purposes=uniqueText(cards.map(card=>card.usage_kind));const shikomi=uniqueText(cards.map(card=>card.shikomi_no));const rice=uniqueText(cards.map(card=>card.rice_variety),3);const hasNote=Boolean(allCards.some(card=>card.note)||s.note);const pressure=(Array.isArray(s.segments)&&s.segments.some(seg=>seg&&(seg.minutes||seg.raw_steam_pressure||seg.dry_steam_pressure)))?'蒸気圧あり':'蒸気圧なし';return `<article class="record-card record-pick-card"><div class="record-head"><div><h3>${escapeHtml(compactDate(record.wash_date))} → ${escapeHtml(compactDate(steamDate(record)))}</h3><span class="card-meta">${escapeHtml(recordMetaHtml(record,cards))}</span></div>${recordActionsHtml(record)}</div><div class="record-summary-grid"><span><b>仕込</b>${escapeHtml(shikomi)}</span><span><b>用途</b>${escapeHtml(purposes)}</span><span><b>米品種</b>${escapeHtml(rice)}</span><span><b>白米合計</b>${escapeHtml(recordTotal(record))}</span><span><b>蒸し時間</b>${escapeHtml(s.steaming_time_min?s.steaming_time_min+'分':'未計算')}</span><span><b>補足</b>${escapeHtml([pressure,hasNote?'備考あり':'備考なし'].join(' / '))}</span></div><div class="record-mini-list">${cards.length?cards.slice(0,6).map(cardMiniHtml).join(''):'<div class="empty-note">表示条件に合う用途明細はありません。</div>'}${cards.length>6?`<div class="empty-note">ほか ${cards.length-6} 用途</div>`:''}</div></article>`;}
+function dailyGroupKey(record){return record.wash_date||'洗米日未入力';}
+function dailyGroupTitle(){return '洗米日';}
+function historySummaryHtml(record,cards){const s=record.steam||{};const purposes=uniqueText(cards.map(card=>card.usage_kind));const shikomi=uniqueText(cards.map(card=>card.shikomi_no));const rice=uniqueText(cards.map(card=>card.rice_variety),3);const total=cards.reduce((sum,card)=>sum+cardKgValue(card),0);return `<div class="genryo-history-summary"><span><b>仕込</b>${escapeHtml(shikomi)}</span><span><b>用途</b>${escapeHtml(purposes)}</span><span><b>米品種</b>${escapeHtml(rice)}</span><span><b>表示分白米</b>${escapeHtml(total.toFixed(1)+' kg')}</span><span><b>記録合計</b>${escapeHtml(recordTotal(record))}</span><span><b>蒸し時間</b>${escapeHtml(s.steaming_time_min?s.steaming_time_min+'分':'未計算')}</span></div>`;}
+function dailyRecordBlockHtml(record,contextExpanded=false){const cards=cardsForDisplay(record,contextExpanded);const total=cards.reduce((sum,card)=>sum+cardKgValue(card),0);const recordMeta=`${cards.length}表示 / 全${(record.rice_cards||[]).length}用途 / 表示分 ${total.toFixed(1)} kg / 記録合計 ${recordTotal(record)}`;return `<section class="genryo-history-card"><div class="daily-record-head"><div><h4>${escapeHtml(compactDate(record.wash_date))} → ${escapeHtml(compactDate(steamDate(record)))}</h4><span class="card-meta">${escapeHtml(recordMeta)}</span></div>${recordActionsHtml(record)}</div><div class="record-row-list genryo-history-row-list">${cards.length?cards.map(cardRowHtml).join(''):'<div class="empty-note">表示条件に合う用途明細はありません。</div>'}${steamSummaryHtml(record)}</div></section>`;}
+function dailySummaryHtml(records,contextExpanded=false){const groups=new Map();records.forEach(record=>{const key=dailyGroupKey(record);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(record);});const direction=getFilters().sortOrder;const sorted=[...groups.entries()].sort((a,b)=>compareDateText(a[0],b[0],direction));return sorted.map(([date,recs])=>{let total=0;let cardCount=0;recs.forEach(record=>{const cards=cardsForDisplay(record,contextExpanded);cardCount+=cards.length;cards.forEach(card=>{total+=cardKgValue(card);});});return `<section class="daily-group-block"><div class="daily-group-head"><div><h3>${escapeHtml(date)} ${dailyGroupTitle()}</h3><span class="card-meta">${recs.length}履歴 / ${cardCount}用途 / 表示分合計 ${total.toFixed(1)} kg</span></div></div><div class="daily-record-list">${recs.map(record=>dailyRecordBlockHtml(record,contextExpanded)).join('')}</div></section>`;}).join('');}
+function renderRecords(records,contextExpanded){return dailySummaryHtml(records,contextExpanded);}
+function loadGenryoList(){const out=document.getElementById('genryo-record-list');if(!out)return;saveFilterState();const all=safeReadRecords().sort(displayRecordSort);refreshStorageStatus(all);const matched=all.filter(recordMatches);const contextual=contextRecords(all,matched);const shown=limitedRecords(contextual.records);out.innerHTML=shown.length?renderRecords(shown,contextual.contextExpanded):'<div class="empty-note">保存記録はありません。</div>';const status=document.getElementById('list-status');if(status){status.textContent=`日別・履歴別明細 / ${contextual.contextLabel} / 表示 ${shown.length}件 / 該当 ${matched.length}件 / 保存 ${all.length}件`;}if(window.__workRecordBindFolds)window.__workRecordBindFolds();}
+
+function deleteGenryoRecord(encodedId){const recordId=decodeURIComponent(encodedId||'');if(!recordId)return;const records=safeReadRecords();const target=records.find(record=>record&&record.record_id===recordId);if(!target)return;const label=recordLabel(target);if(!confirm(`この原料処理記録を削除します。\n${label}\n\n削除前に必要ならトップの「データ管理」で全工程JSONバックアップを作成してください。`))return;const next=records.filter(record=>!(record&&record.record_id===recordId));if(!safeWriteRecords(next,'1件削除')){alert('削除できませんでした。');return;}const status=document.getElementById('import-export-status');if(status)status.textContent=`1件削除しました。保存 ${next.length}件`;loadGenryoList();}
+function deleteAllGenryoRecords(){const records=safeReadRecords();const count=records.length;const status=document.getElementById('import-export-status');if(!count){if(status)status.textContent='削除対象の原料処理保存記録はありません。';return;}if(!confirm(`原料処理の保存記録 ${count}件を全件削除します。\n\n必要な場合は、先にトップの「データ管理」で全工程JSONバックアップを作成してください。\nこの操作は元に戻せません。`))return;if(!confirm(`最終確認です。\n原料処理の保存記録 ${count}件を全件削除してよろしいですか？`))return;if(!safeWriteRecords([],'全件削除')){alert('全件削除できませんでした。');return;}if(status)status.textContent=`原料処理の保存記録 ${count}件を全件削除しました。`;loadGenryoList();}
+window.addEventListener('DOMContentLoaded',()=>{restoreFilterState();loadGenryoList();});
+</script>
+  <script src="assets/ui.js?v=20260612genryohistoryrows" defer></script>
+</body>
+</html>
