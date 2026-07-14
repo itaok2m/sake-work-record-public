@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2f4257">
   <title>原料処理の出力</title>
-  <link rel="stylesheet" href="assets/base.css?v=20260630genryofields">
+  <link rel="stylesheet" href="assets/base.css?v=20260714genryopreview28">
 </head>
 <body>
   <div class="tool-nav">
@@ -47,6 +47,12 @@
           </div>
         </details>
         <div id="report-output-status" class="list-status"></div>
+      </section>
+
+      <section class="input-block">
+        <h2>履歴明細プレビュー</h2>
+        <p class="empty-note">現在の出力条件に一致する日別記録を、印刷前にこの画面で確認します。</p>
+        <div id="genryo-report-preview"></div>
       </section>
 
       <section class="input-block">
@@ -100,7 +106,18 @@ function selectedOutputLabel(allMode,records){if(allMode)return `全件 ${record
 function summarize(records){const usage=new Map();const shikomi=new Map();const shikomiUsage=new Map();const variety=new Map();let cardCount=0;let kg=0;records.forEach(record=>{(record.rice_cards||[]).forEach(card=>{cardCount++;const k=kgValue(card);kg+=k;const usageKey=card.usage_kind||'未入力';usage.set(usageKey,(usage.get(usageKey)||0)+k);const shikomiKey=asText(card.shikomi_no)||'未入力';shikomi.set(shikomiKey,(shikomi.get(shikomiKey)||0)+k);if(!shikomiUsage.has(shikomiKey))shikomiUsage.set(shikomiKey,new Map());const row=shikomiUsage.get(shikomiKey);row.set(usageKey,(row.get(usageKey)||0)+k);const varietyKey=riceName(card);variety.set(varietyKey,(variety.get(varietyKey)||0)+k);});});return {recordCount:records.length,cardCount,totalKg:kg,usage,shikomi,shikomiUsage,variety};}
 function orderedUsageKeys(map){const rest=[...map.keys()].filter(k=>!USAGE_ORDER.includes(k)).sort((a,b)=>String(a).localeCompare(String(b),'ja'));return [...USAGE_ORDER.filter(k=>map.has(k)),...rest];}
 function orderedShikomiKeys(map){return [...map.keys()].sort((a,b)=>normalizeShikomi(a).localeCompare(normalizeShikomi(b),'ja',{numeric:true}));}
-function updateGenryoOutputStatus(){const all=safeReadGenryoRecords();const selected=selectedGenryoRecords(false);const sum=summarize(selected);setReportStatus(`条件出力 ${selected.length}件 / 保存 ${all.length}件。米明細 ${sum.cardCount}件、白米合計 ${formatKg(sum.totalKg)}kg。全件出力は折りたたみ内です。`);}
+function buildGenryoPreview(records){
+  if(!records.length)return '<div class="empty-note">条件に該当する原料処理記録はありません。</div>';
+  return records.map((record,index)=>{
+    const steam=record.steam||{};
+    const cards=Array.isArray(record.rice_cards)?record.rice_cards:[];
+    const rows=cards.map(card=>`<tr><td>${escapeHtml(card.usage_kind||'')}</td><td>${escapeHtml(card.shikomi_no||'')}</td><td>${escapeHtml(riceName(card))}</td><td>${escapeHtml(formatKg(kgValue(card)))}</td><td>${escapeHtml(washDisplay(card)).replace(/\n/g,'<br>')}</td><td>${escapeHtml(soakDisplay(card)).replace(/\n/g,'<br>')}</td><td>${escapeHtml(card.water_temp||'')}</td><td>${escapeHtml(card.kenjo_order||'')}</td><td class="text-left">${escapeHtml(compactDailyNote(card.note))}</td></tr>`).join('');
+    const pressure=steamPressureDisplayRows(steam).map(row=>`<tr><td>${escapeHtml(row.label)}</td><td>${escapeHtml(row.minutes)}</td><td>${escapeHtml(row.raw)}</td><td>${escapeHtml(row.dry)}</td></tr>`).join('');
+    return `<article class="record-card genryo-preview-card"><header class="record-head"><div><h3>No.${index+1}　洗米日 ${escapeHtml(formatDate(record.wash_date))}</h3><span class="card-meta">蒸し実施日 ${escapeHtml(formatDate(steam.actual_date)||'未入力')} / 白米合計 ${escapeHtml(formatKg(totalKg(cards)))} kg</span></div></header><div class="data-table-wrap"><table class="data-table genryo-preview-table"><thead><tr><th>用途</th><th>仕込号</th><th>品種・精米</th><th>白米kg</th><th>洗米</th><th>浸漬</th><th>水温℃</th><th>検蒸順</th><th>備考</th></tr></thead><tbody>${rows||'<tr><td colspan="9">米明細なし</td></tr>'}</tbody></table></div><div class="ledger-kpis"><span><b>蒸気入れ</b>${escapeHtml(steam.steam_in_time||'—')}</span><span><b>沸騰</b>${escapeHtml(steam.boil_time||'—')}</span><span><b>蒸気抜け</b>${escapeHtml(steam.steam_through_time||'—')}</span><span><b>蒸し終了</b>${escapeHtml(steam.steam_end_time||'—')}</span><span><b>蒸し時間</b>${escapeHtml(steam.steaming_time_min||'—')} 分</span></div>${pressure?`<div class="data-table-wrap genryo-pressure-preview"><table class="data-table"><thead><tr><th>区間</th><th>分</th><th>生蒸気 MPa</th><th>乾燥蒸気 MPa</th></tr></thead><tbody>${pressure}</tbody></table></div>`:''}${steam.note?`<p class="small-note"><b>蒸し備考：</b>${escapeHtml(compactDailyNote(steam.note))}</p>`:''}</article>`;
+  }).join('');
+}
+function renderGenryoOutputPreview(records){const target=document.getElementById('genryo-report-preview');if(target)target.innerHTML=buildGenryoPreview(records);}
+function updateGenryoOutputStatus(){const all=safeReadGenryoRecords();const selected=selectedGenryoRecords(false);const sum=summarize(selected);setReportStatus(`条件出力 ${selected.length}件 / 保存 ${all.length}件。米明細 ${sum.cardCount}件、白米合計 ${formatKg(sum.totalKg)}kg。全件出力は折りたたみ内です。`);renderGenryoOutputPreview(selected);}
 function clearGenryoOutputFilters(){['genryo-output-date-from','genryo-output-date-to','genryo-output-shikomi','genryo-output-keyword'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});const kind=document.getElementById('genryo-output-kind');if(kind)kind.value='';updateGenryoOutputStatus();}
 function dailySheetRows(records,label){const rows=[];const sum=summarize(records);rows.push(['原料処理 日別帳票']);rows.push(['出力条件',label||'']);rows.push(['出力日時',formatDateTime(new Date().toISOString())]);rows.push(['記録件数',sum.recordCount,'米明細件数',sum.cardCount,'白米合計kg',sum.totalKg]);rows.push([]);records.forEach((record,index)=>{const s=record.steam||{};const cards=Array.isArray(record.rice_cards)?record.rice_cards:[];rows.push([`No.${index+1}`,`洗米日 ${formatDate(record.wash_date)}`,`蒸し実施日 ${formatDate(s.actual_date)}`,`白米合計 ${formatKg(totalKg(cards))}kg`]);rows.push(['用途','仕込号','品種 精米','白米kg','洗米','浸漬','水温℃','検蒸順','備考']);cards.forEach(card=>rows.push([card.usage_kind||'',card.shikomi_no||'',riceName(card),kgValue(card),washDisplay(card),soakDisplay(card),numOrBlank(card.water_temp),numOrBlank(card.kenjo_order),compactDailyNote(card.note)]));rows.push(['翌日蒸し','蒸気入れ',s.steam_in_time||'','沸騰',s.boil_time||'','蒸気抜け',s.steam_through_time||'','蒸し終了',s.steam_end_time||'']);rows.push(['蒸し時間 分',numOrBlank(s.steaming_time_min),'蒸し備考',compactDailyNote(s.note)]);const pressureRows=steamPressureDisplayRows(s);if(pressureRows.length){rows.push(['蒸気圧','区間','分','生蒸気 MPa','乾燥蒸気 MPa']);pressureRows.forEach(row=>rows.push(['',row.label,row.minutes,row.raw,row.dry]));}rows.push([]);});return rows;}
 function detailSheetRows(records){const rows=[['出力No.','洗米日','蒸し実施日','用途分類','仕込号','米品種','精米%','白米kg','洗米開始','洗米終了','洗米時間','浸漬開始','浸漬終了','浸漬時間','水温℃','検蒸順','備考要約']];records.forEach((record,index)=>{const s=record.steam||{};(record.rice_cards||[]).forEach(card=>rows.push([index+1,formatDate(record.wash_date),formatDate(s.actual_date),card.usage_kind||'',card.shikomi_no||'',card.rice_variety||'',numOrBlank(card.rice_polish),kgValue(card),card.wash_start||'',card.wash_end||'',card.wash_duration||'',card.soak_start||'',card.soak_end||'',card.soak_duration||'',numOrBlank(card.water_temp),numOrBlank(card.kenjo_order),compactDetailNote(card.note)]));});return rows;}
@@ -306,6 +323,6 @@ function openGenryoPrintHtml(allMode){const records=selectedGenryoRecords(Boolea
 
 window.addEventListener('DOMContentLoaded',()=>{updateGenryoOutputStatus();});
 </script>
-  <script src="assets/ui.js?v=20260630genryofields" defer></script>
+  <script src="assets/ui.js?v=20260714genryopreview28" defer></script>
 </body>
 </html>

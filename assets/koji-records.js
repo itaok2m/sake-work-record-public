@@ -96,12 +96,37 @@ function krBaseRows(record){
   ];
 }
 
+
+function krNum(value){const n=Number(krText(value).replace(/,/g,''));return Number.isFinite(n)?n:null;}
+function krGraphSvg(record){
+  const events=krEventSort(record.events || []).filter(event=>[event.productTemp,event.roomTemp,event.dryBulb,event.wetBulb].some(value=>krNum(value)!==null));
+  if(events.length<2)return '<div class="ledger-graph-empty">温度グラフに必要な経過値が不足しています。</div>';
+  const series=[
+    {key:'productTemp',label:'品温',className:'graph-product'},
+    {key:'roomTemp',label:'室温',className:'graph-room'},
+    {key:'dryBulb',label:'乾球',className:'graph-dry'},
+    {key:'wetBulb',label:'湿球',className:'graph-wet'}
+  ];
+  const values=events.flatMap(event=>series.map(item=>krNum(event[item.key])).filter(value=>value!==null));
+  const min=Math.floor(Math.min(...values)-2),max=Math.ceil(Math.max(...values)+2),span=Math.max(1,max-min);
+  const width=920,height=260,left=52,right=16,top=18,bottom=52,plotW=width-left-right,plotH=height-top-bottom;
+  const x=index=>left+(events.length===1?plotW/2:index*plotW/(events.length-1));
+  const y=value=>top+(max-value)*plotH/span;
+  const grid=[];
+  for(let i=0;i<=5;i++){const value=max-span*i/5,yy=top+plotH*i/5;grid.push(`<line x1="${left}" y1="${yy}" x2="${width-right}" y2="${yy}" class="graph-grid"/><text x="${left-8}" y="${yy+4}" text-anchor="end" class="graph-label">${value.toFixed(1)}</text>`);}
+  const lines=series.map(item=>{const points=events.map((event,index)=>{const value=krNum(event[item.key]);return value===null?null:`${x(index)},${y(value)}`;}).filter(Boolean);return points.length<2?'':`<polyline points="${points.join(' ')}" class="graph-line ${item.className}" fill="none"/>`;}).join('');
+  const dots=series.map(item=>events.map((event,index)=>{const value=krNum(event[item.key]);return value===null?'':`<circle cx="${x(index)}" cy="${y(value)}" r="3" class="graph-dot ${item.className}"><title>${krEsc(item.label)} ${krEsc(value)}℃ / ${krEsc(event.operation)} ${krEsc(event.date)} ${krEsc(event.time)}</title></circle>`;}).join('')).join('');
+  const labels=events.map((event,index)=>{if(index!==0&&index!==events.length-1&&events.length>10&&index%2)return '';const label=event.operation||`${event.hours}h`;return `<text x="${x(index)}" y="${height-24}" text-anchor="middle" class="graph-label">${krEsc(label)}</text>`;}).join('');
+  const legend=series.map((item,index)=>`<g transform="translate(${left+index*105},${height-7})"><line x1="0" y1="0" x2="22" y2="0" class="graph-line ${item.className}"/><text x="28" y="4" class="graph-label">${item.label}</text></g>`).join('');
+  return `<div class="ledger-graph"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="麹の品温・室温・乾球・湿球推移"><text x="6" y="14" class="graph-axis-title">℃</text>${grid.join('')}<line x1="${left}" y1="${top}" x2="${left}" y2="${height-bottom}" class="graph-axis"/><line x1="${left}" y1="${height-bottom}" x2="${width-right}" y2="${height-bottom}" class="graph-axis"/>${lines}${dots}${labels}${legend}</svg></div>`;
+}
 function krLedgerHtml(record,{withActions=false}={}){
   const actions=withActions ? `<div class="record-actions no-print"><a class="btn" href="koji.html?id=${encodeURIComponent(record.record_id)}">編集</a><a class="btn" href="reports-koji.html?id=${encodeURIComponent(record.record_id)}">この記録を出力</a></div>` : '';
-  const baseRows=krBaseRows(record).map(row=>`<tr>${row.map((v,i)=>i%2===0?`<th>${krEsc(v)}</th>`:`<td>${krEsc(v)}</td>`).join('')}</tr>`).join('');
+  const baseRows=krBaseRows(record).map(row=>`<tr>${row.map((value,index)=>index%2===0?`<th>${krEsc(value)}</th>`:`<td>${krEsc(value)}</td>`).join('')}</tr>`).join('');
   const events=krEventSort(record.events || []);
-  const eventRows=events.map(e=>`<tr><td>${krEsc(e.operation)}</td><td>${krEsc(krFmtDate(e.date))}</td><td>${krEsc(e.time)}</td><td>${krEsc(e.hours)}</td><td>${krEsc(e.productTemp)}</td><td>${krEsc(e.roomTemp)}</td><td>${krEsc(e.humidity)}</td><td>${krEsc(e.dryBulb)}</td><td>${krEsc(e.wetBulb)}</td><td class="text-left">${krEsc(e.appearance)}</td><td class="text-left">${krEsc(e.note)}</td></tr>`).join('');
-  return `<article class="koji-ledger" data-record-id="${krEsc(record.record_id)}"><header class="koji-ledger-head"><div><h3>${krEsc(krRecordTitle(record))}</h3><span class="card-meta">引込 ${krEsc(krFmtDate(record.base.hikikomiDate) || '未入力')} / ${krEsc(record.base.whiteRiceKg || '数量未入力')} kg${record.legacy_source ? ' / 旧形式を読取' : ''}</span></div>${actions}</header><div class="data-table-wrap"><table class="data-table koji-base-table"><tbody>${baseRows}</tbody></table></div><div class="data-table-wrap koji-progress-wrap"><table class="data-table koji-progress-table"><thead><tr><th>操作</th><th>月日</th><th>時刻</th><th>在室h</th><th>品温℃</th><th>室温℃</th><th>湿度%</th><th>乾球℃</th><th>湿球℃</th><th>状貌</th><th>備考</th></tr></thead><tbody>${eventRows || '<tr><td colspan="11">経過未入力</td></tr>'}</tbody></table></div>${record.base.note ? `<p class="koji-ledger-note"><b>製造単位メモ：</b>${krEsc(record.base.note)}</p>` : ''}</article>`;
+  const eventRows=events.map(event=>`<tr><td>${krEsc(event.operation)}</td><td>${krEsc(krFmtDate(event.date))}</td><td>${krEsc(event.time)}</td><td>${krEsc(event.hours)}</td><td>${krEsc(event.productTemp)}</td><td>${krEsc(event.roomTemp)}</td><td>${krEsc(event.humidity)}</td><td>${krEsc(event.dryBulb)}</td><td>${krEsc(event.wetBulb)}</td><td class="text-left">${krEsc(event.appearance)}</td><td class="text-left">${krEsc(event.note)}</td></tr>`).join('');
+  const dummy=record.dummy_data?'<p class="data-warning"><b>確認用ダミー</b> 一般的な製麹工程を仮置きしたデータで、現場実績ではありません。</p>':'';
+  return `<article class="koji-ledger" data-record-id="${krEsc(record.record_id)}"><header class="koji-ledger-head"><div><h3>${krEsc(krRecordTitle(record))}</h3><span class="card-meta">引込 ${krEsc(krFmtDate(record.base.hikikomiDate) || '未入力')} / ${krEsc(record.base.whiteRiceKg || '数量未入力')} kg${record.legacy_source ? ' / 旧形式を読取' : ''}</span></div>${actions}</header>${dummy}<div class="data-table-wrap"><table class="data-table koji-base-table"><tbody>${baseRows}</tbody></table></div><section class="ledger-subsection"><h4>温度経過グラフ</h4>${krGraphSvg(record)}</section><div class="data-table-wrap koji-progress-wrap"><table class="data-table koji-progress-table"><thead><tr><th>操作</th><th>月日</th><th>時刻</th><th>在室h</th><th>品温℃</th><th>室温℃</th><th>湿度%</th><th>乾球℃</th><th>湿球℃</th><th>状貌</th><th>備考</th></tr></thead><tbody>${eventRows || '<tr><td colspan="11">経過未入力</td></tr>'}</tbody></table></div>${record.base.note ? `<p class="koji-ledger-note"><b>製造単位メモ：</b>${krEsc(record.base.note)}</p>` : ''}</article>`;
 }
 
 function krEventOptions(selected=''){const operations=selected&&!KR_OPERATIONS.includes(selected)?[...KR_OPERATIONS,selected]:KR_OPERATIONS;return operations.map(op=>`<option${op===selected?' selected':''}>${krEsc(op)}</option>`).join('');}
@@ -175,7 +200,7 @@ function krPrint(){window.print();}
 function krDownload(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();const url=a.href;a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function krNumberOrText(v){const s=krText(v).replace(/[０-９．]/g,ch=>ch==='．'?'.':String.fromCharCode(ch.charCodeAt(0)-0xFEE0));return s!==''&&Number.isFinite(Number(s))?Number(s):s;}
 function krExcelSheets(records){
-  const ledger=[['こうじ製造帳']];
+  const ledger=[['麹製造帳']];
   records.forEach((r,index)=>{
     ledger.push([],['記録ID',r.record_id,'更新日時',r.updated_at],...krBaseRows(r));
     ledger.push(['操作','月日','時刻','在室h','品温℃','室温℃','湿度%','乾球℃','湿球℃','状貌','備考']);
@@ -186,7 +211,7 @@ function krExcelSheets(records){
   records.forEach(r=>krEventSort(r.events).forEach(e=>progress.push([r.record_id,r.base.BY,r.base.use,r.base.lot,r.base.destination,e.operation,e.date,e.time,krNumberOrText(e.hours),krNumberOrText(e.productTemp),krNumberOrText(e.roomTemp),krNumberOrText(e.humidity),krNumberOrText(e.dryBulb),krNumberOrText(e.wetBulb),e.appearance,e.note])));
   const filters=krGetFilters();
   const info=[['項目','内容'],['出力日時',new Date().toLocaleString('ja-JP')],['出力件数',records.length],['条件',krConditionLabel(filters,records.length)],['用途','人が読む確認・印刷・Excel資料'],['注意','Excelを編集してもアプリ内記録には戻りません。正本バックアップは全工程JSONです。']];
-  return [{name:'1_こうじ製造帳',rows:ledger,widths:[18,22,16,18,16,18,16,18,14,28,34]},{name:'2_製麹経過',rows:progress,widths:[24,10,12,18,18,14,12,12,12,12,12,12,12,12,24,30]},{name:'3_出力情報',rows:info,widths:[18,58]}];
+  return [{name:'1_麹製造帳',rows:ledger,widths:[18,22,16,18,16,18,16,18,14,28,34]},{name:'2_製麹経過',rows:progress,widths:[24,10,12,18,18,14,12,12,12,12,12,12,12,12,24,30]},{name:'3_出力情報',rows:info,widths:[18,58]}];
 }
 function krColName(index){let result='';for(let n=index+1;n>0;n=Math.floor((n-1)/26))result=String.fromCharCode(65+((n-1)%26))+result;return result;}
 function krU16(a,v){a.push(v&255,(v>>>8)&255);}function krU32(a,v){a.push(v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255);}
