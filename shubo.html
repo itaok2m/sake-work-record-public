@@ -1,70 +1,13 @@
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#2f4257">
-  <title>酒母製造</title>
-  <link rel="stylesheet" href="assets/base.css?v=20260710independent01">
-</head>
-<body>
-  <div class="tool-nav">
-    <a class="back-btn" href="flowchart.html">← 工程別記録へ戻る</a>
-    <div class="tool-nav-place"><span class="tool-nav-title">酒母製造</span></div>
-  </div>
-  <main class="tool-body">
-    <section class="screen-lead">
-      <h1>酒母製造</h1>
-    </section>
-    <div class="wrapper wide">
-      <section class="input-block">
-        <h2>酒母基本情報</h2>
-        <p class="empty-note">分析値は分析記録を正本にし、この画面では参照・候補反映する方針です。ここでは酒母側の操作経過を薄く保存します。</p>
-        <div class="form-grid">
-          <div class="field"><label>BY</label><select data-field="BY"><option>R7BY</option><option>R8BY</option></select></div>
-          <div class="field"><label>酒母番号</label><input data-field="酒母番号" placeholder="例：M-77-01"></div>
-          <div class="field"><label>仕込号</label><input data-field="仕込号" placeholder="使用先の仕込号"></div>
-          <div class="field"><label>開始日</label><input data-field="開始日" type="date"></div>
-          <div class="field"><label>使用予定日</label><input data-field="使用予定日" type="date"></div>
-          <div class="field"><label>タンク / 容器</label><input data-field="タンク" placeholder="例：T12 / 半切など"></div>
-        </div>
-      </section>
-      <section class="input-block">
-        <h2>酒母経過</h2>
-        <div class="rice-card-list"><article class="rice-card"><div class="rice-card-head"><div><h3>経過カード</h3><span class="card-meta">仕込・荒櫂・暖気・分け・使用など</span></div></div><div class="rice-main-grid">
-          <div class="field compact-field"><label>日順</label><input data-field="日順" inputmode="numeric" placeholder="1"></div>
-          <div class="field compact-field"><label>月日</label><input data-field="月日" type="date"></div>
-          <div class="field compact-field"><label>時刻</label><input data-field="時刻" type="time" step="1"></div>
-          <div class="field compact-field"><label>操作</label><input data-field="操作" placeholder="仕込、荒櫂、暖気など"></div>
-          <div class="field compact-field"><label>品温 ℃</label><input data-field="品温℃" inputmode="decimal"></div>
-          <div class="field compact-field"><label>室温 ℃</label><input data-field="室温℃" inputmode="decimal"></div>
-          <div class="field compact-field"><label>分析参照</label><input data-field="分析参照" placeholder="後段で分析記録から候補取り込み"></div>
-          <div class="field compact-field memo-field"><label>状貌・備考</label><textarea data-field="備考" placeholder="泡、香り、湧き、追水、暖気操作など"></textarea></div>
-        </div></article></div>
-        <div class="actions"><button class="btn primary" type="button" onclick="saveRecord()">酒母製造を保存</button><button class="btn" type="button" onclick="clearForm()">入力欄を空にする</button><a class="btn" href="shubo-detail.html">詳細確認へ</a></div>
-        <div id="record-status" class="list-status"></div>
-      </section>
-      <section class="input-block"><h2>保存済み酒母製造</h2><div id="record-count" class="list-status"></div><div id="saved-records" class="check-list"></div></section>
-    </div>
-  </main>
-  <script>window.WORK_RECORD_PAGE={"process": "shubo", "label": "酒母製造", "storageKey": "workRecordShuboRecordsV1", "idPrefix": "shubo", "titleFields": ["酒母番号", "仕込号"], "dateFields": ["月日", "開始日"], "summaryFields": ["日順", "操作", "品温℃", "室温℃", "分析参照"]};</script>
-  <script>
-const RECORD_KEY=window.WORK_RECORD_PAGE.storageKey;
-const RECORD_LABEL=window.WORK_RECORD_PAGE.label;
-function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function nowIso(){return new Date().toISOString();}
-function compactId(){return Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
-function readRecords(){try{const raw=localStorage.getItem(RECORD_KEY);const parsed=raw?JSON.parse(raw):[];return Array.isArray(parsed)?parsed:[];}catch(_err){return [];}}
-function writeRecords(records){localStorage.setItem(RECORD_KEY,JSON.stringify(records));}
-function fieldValue(name){const el=document.querySelector(`[data-field="${name}"]`);return el?String(el.value||'').trim():'';}
-function setStatus(text){const el=document.getElementById('record-status');if(el)el.textContent=text;}
-function collectRecord(){const fields={};document.querySelectorAll('[data-field]').forEach(el=>{fields[el.dataset.field]=String(el.value||'').trim();});return {record_id:window.WORK_RECORD_PAGE.idPrefix+'_'+compactId(),schema:'workRecordThinRecordV01',process:window.WORK_RECORD_PAGE.process,label:RECORD_LABEL,created_at:nowIso(),updated_at:nowIso(),fields,candidate_imports:[],notes:'薄い実装。候補取り込み・グラフ・帳票は次段階。'};}
-function saveRecord(){try{const records=readRecords();const next=collectRecord();records.unshift(next);writeRecords(records);setStatus(`${RECORD_LABEL}を保存しました。端末内保存 ${records.length}件。正本化は全工程バックアップJSONで行います。`);renderRecords();}catch(err){alert('保存できませんでした。'+(err&&err.message?'\n'+err.message:''));}}
-function clearForm(){document.querySelectorAll('[data-field]').forEach(el=>{el.value='';});setStatus('入力欄を空にしました。保存済み記録は消していません。');}
-function primaryValue(record,names){for(const name of names){const value=record.fields&&record.fields[name];if(value)return value;}return '未入力';}
-function renderRecords(){const records=readRecords();const list=document.getElementById('saved-records');if(!list)return;const rows=records.slice(0,20).map(record=>{const title=primaryValue(record,window.WORK_RECORD_PAGE.titleFields||[]);const date=primaryValue(record,window.WORK_RECORD_PAGE.dateFields||[]);const meta=(record.updated_at||record.created_at||'').replace('T',' ').slice(0,16);const summary=window.WORK_RECORD_PAGE.summaryFields.map(name=>`${name}: ${record.fields?.[name]||'未入力'}`).join(' / ');return `<div class="check-item"><b>${escapeHtml(title)}</b><span class="status draft">端末内</span> ${escapeHtml(date)}<br><small>${escapeHtml(summary)} / 更新 ${escapeHtml(meta)}</small></div>`;}).join('');list.innerHTML=rows||'<div class="empty-note">保存済み記録はまだありません。</div>';const count=document.getElementById('record-count');if(count)count.textContent=`端末内保存 ${records.length}件`;}
-document.addEventListener('DOMContentLoaded',()=>{renderRecords();});
-</script>
-  <script src="assets/ui.js?v=20260710independent01" defer></script>
-</body>
-</html>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2f4257"><title>酒母製造 入力</title><link rel="stylesheet" href="assets/base.css?v=20260714shubov27"></head><body data-page="shubo-input">
+<div class="tool-nav"><a class="back-btn" href="flowchart.html">← 工程別記録へ戻る</a><div class="tool-nav-place"><span class="tool-nav-title">酒母製造 入力</span></div></div>
+<main class="tool-body"><section class="screen-lead"><h1>酒母製造 入力</h1><p>1本の酒母基本記録に、仕込配合・複数日の経過・採取管理・払出をまとめます。分析値は分析記録を正本として参照します。</p><div class="actions"><a class="btn" href="shubo-detail.html">保存済み記録を確認</a><a class="btn" href="reports-shubo.html">酒母製造を出力</a></div></section><div class="wrapper wide">
+<section class="input-block"><div class="edit-status"><div><b id="sr-edit-target">新しい酒母記録を入力中</b><div id="sr-input-status" class="list-status"></div></div><button class="btn" type="button" onclick="srResetInput()">新しい記録を開始</button></div><input id="sr-record-id" type="hidden"></section>
+<section class="input-block"><h2>酒母基本情報</h2><div class="form-grid">
+<div class="field"><label>BY</label><select data-base="BY"><option>R7BY</option><option>R8BY</option></select></div><div class="field"><label>仕込記号</label><input data-base="symbol"></div><div class="field"><label>仕込順号</label><input data-base="sequence" inputmode="numeric"></div><div class="field"><label>容器番号</label><input data-base="tankNo"></div><div class="field"><label>酒母種類</label><input data-base="shuboType" placeholder="中温・速醸など"></div><div class="field"><label>酒種類</label><input data-base="sakeType"></div><div class="field"><label>米品種・精米</label><input data-base="riceSummary"></div><div class="field"><label>使用先仕込号</label><input data-base="destinationBatch"></div><div class="field memo-field"><label>メモ</label><textarea data-base="note"></textarea></div></div></section>
+<section class="input-block"><h2>仕込配合・仕込即時</h2><div class="form-grid">
+<div class="field"><label>掛米 kg</label><input data-base="kakemaiKg" inputmode="decimal"></div><div class="field"><label>掛米 品種・精米</label><input data-base="kakemaiDetail"></div><div class="field"><label>麹米 kg</label><input data-base="kojimaiKg" inputmode="decimal"></div><div class="field"><label>麹米 品種・精米</label><input data-base="kojimaiDetail"></div><div class="field"><label>総米 kg（自動）</label><input id="sr-total-rice" readonly></div><div class="field"><label>汲水 L</label><input data-base="waterL" inputmode="decimal"></div><div class="field"><label>仕込時深さ mm</label><input data-base="startDepthMm" inputmode="decimal"></div><div class="field"><label>乳酸 ml</label><input data-base="lacticMl" inputmode="decimal"></div><div class="field"><label>使用酵母</label><input data-base="yeast"></div><div class="field"><label>酵母数量</label><input data-base="yeastAmount"></div><div class="field"><label>仕込年月日</label><input data-base="startDate" type="date"></div><div class="field"><label>仕込時数量 L</label><input data-base="startVolumeL" inputmode="decimal"></div></div></section>
+<section class="input-block"><h2>日々の経過</h2><p class="empty-note">製造台帳の項目順を維持します。分析欄は分析記録からの参照表示で、ここでは保存しません。</p><div class="data-table-wrap"><table class="data-table"><thead><tr><th>日順</th><th>月日</th><th>時刻</th><th>操作</th><th>追水L</th><th>状貌</th><th>経過簿</th><th>室温℃</th><th>品温℃</th><th>外気温℃</th><th>容器</th><th>深さmm</th><th>数量L</th><th></th></tr></thead><tbody id="sr-event-body"></tbody></table></div><div class="actions"><button id="sr-add-event" class="btn" type="button">経過行を追加</button></div></section>
+<section class="input-block"><h2>分析サンプル採取・使用・廃棄</h2><div class="data-table-wrap"><table class="data-table"><thead><tr><th>採取日</th><th>分析日</th><th>採取量ml</th><th>使用量ml</th><th>廃棄量ml</th><th>処分内容</th><th>分析記録との照合メモ</th><th></th></tr></thead><tbody id="sr-sample-body"></tbody></table></div><div class="actions"><button id="sr-add-sample" class="btn" type="button">採取行を追加</button><a class="btn" href="analysis.html">分析記録を開く</a></div></section>
+<section class="input-block"><h2>払出</h2><div class="form-grid"><div class="field"><label>熟成深 mm</label><input data-base="matureDepthMm" inputmode="decimal"></div><div class="field"><label>製造数量 L</label><input data-base="productionVolumeL" inputmode="decimal"></div><div class="field"><label>払出年月日</label><input data-base="transferDate" type="date"></div><div class="field"><label>払出数量 L</label><input data-base="transferVolumeL" inputmode="decimal"></div><div class="field"><label>払出後深さ mm</label><input data-base="afterDepthMm" inputmode="decimal"></div><div class="field"><label>払出後残数量 L</label><input data-base="remainingVolumeL" inputmode="decimal"></div><div class="field"><label>払出先 T.No</label><input data-base="destinationTank"></div><div class="field"><label>醪順号</label><input data-base="moromiSequence"></div><div class="field"><label>醪記号</label><input data-base="moromiSymbol"></div><div class="field"><label>酒種類</label><input data-base="transferSakeType"></div><div class="field"><label>熟成歩合 %（自動）</label><input id="sr-maturity-rate" readonly></div></div></section>
+<section class="input-block"><div class="actions"><button class="btn primary" type="button" onclick="srSaveInput()">酒母製造を保存</button><button class="btn" type="button" onclick="srResetInput()">入力を空にする</button></div><details id="sr-delete-current-wrap" class="danger-details danger-inline" hidden><summary>この酒母記録を削除</summary><p class="empty-note">編集対象の1記録だけを削除します。</p><button class="btn danger" type="button" onclick="srDeleteCurrent()">この記録を削除</button></details></section>
+</div></main><script src="assets/shubo-records.js?v=20260714v27"></script><script src="assets/ui.js?v=20260710independent01" defer></script></body></html>
