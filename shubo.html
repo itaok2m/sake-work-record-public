@@ -19,7 +19,7 @@
     <div class="wrapper wide">
       <section class="input-block">
         <h2>酒母基本情報</h2>
-        <p class="empty-note">分析値は分析記録を正本にし、この画面では参照・候補反映する方針です。ここでは酒母側の操作経過を保存します。</p>
+        <p class="empty-note">分析値は分析記録を正本にし、この画面では参照・候補反映する方針です。ここでは酒母側の操作経過を薄く保存します。</p>
         <div class="form-grid">
           <div class="field"><label>BY</label><select data-field="BY"><option>R7BY</option><option>R8BY</option></select></div>
           <div class="field"><label>酒母番号</label><input data-field="酒母番号" placeholder="例：M-77-01"></div>
@@ -44,13 +44,6 @@
         <div class="actions"><button class="btn primary" type="button" onclick="saveRecord()">酒母製造を保存</button><button class="btn" type="button" onclick="clearForm()">入力欄を空にする</button><a class="btn" href="shubo-detail.html">詳細確認へ</a></div>
         <div id="record-status" class="list-status"></div>
       </section>
-      <section class="input-block">
-        <h2>分析記録 候補確認</h2>
-        <p class="empty-note">分析記録から、酒母番号・仕込号・タンクに近い候補を表示します。ここでは確認だけ行い、酒母製造の保存済み記録へ自動反映しません。</p>
-        <div class="actions"><button class="btn" type="button" onclick="renderAnalysisCandidates()">分析記録の候補を表示</button><a class="btn" href="analysis.html">分析記録を開く</a></div>
-        <div id="analysis-candidate-status" class="list-status"></div>
-        <div id="analysis-candidates" class="check-list"></div>
-      </section>
       <section class="input-block"><h2>保存済み酒母製造</h2><div id="record-count" class="list-status"></div><div id="saved-records" class="check-list"></div></section>
     </div>
   </main>
@@ -70,17 +63,6 @@ function saveRecord(){try{const records=readRecords();const next=collectRecord()
 function clearForm(){document.querySelectorAll('[data-field]').forEach(el=>{el.value='';});setStatus('入力欄を空にしました。保存済み記録は消していません。');}
 function primaryValue(record,names){for(const name of names){const value=record.fields&&record.fields[name];if(value)return value;}return '未入力';}
 function renderRecords(){const records=readRecords();const list=document.getElementById('saved-records');if(!list)return;const rows=records.slice(0,20).map(record=>{const title=primaryValue(record,window.WORK_RECORD_PAGE.titleFields||[]);const date=primaryValue(record,window.WORK_RECORD_PAGE.dateFields||[]);const meta=(record.updated_at||record.created_at||'').replace('T',' ').slice(0,16);const summary=window.WORK_RECORD_PAGE.summaryFields.map(name=>`${name}: ${record.fields?.[name]||'未入力'}`).join(' / ');return `<div class="check-item"><b>${escapeHtml(title)}</b><span class="status draft">端末内</span> ${escapeHtml(date)}<br><small>${escapeHtml(summary)} / 更新 ${escapeHtml(meta)}</small></div>`;}).join('');list.innerHTML=rows||'<div class="empty-note">保存済み記録はまだありません。</div>';const count=document.getElementById('record-count');if(count)count.textContent=`端末内保存 ${records.length}件`;}
-
-const ANALYSIS_RECORD_KEY='workRecordAnalysisRecordsV1';
-const ANALYSIS_TARGET_PROCESS=window.WORK_RECORD_PAGE.process==='shubo'?'酒母':'醪';
-function readAnalysisRecords(){try{const raw=localStorage.getItem(ANALYSIS_RECORD_KEY);const parsed=raw?JSON.parse(raw):[];return Array.isArray(parsed)?parsed:[];}catch(_err){return [];}}
-function normText(value){return String(value||'').trim().toLowerCase();}
-function candidateTokens(){const names=window.WORK_RECORD_PAGE.process==='shubo'?['酒母番号','仕込号','タンク']:['仕込号','タンク','記号・順号'];return names.map(name=>fieldValue(name)).filter(Boolean);}
-function analysisDate(record){return String(record.fields?.['分析日']||record.created_at||record.updated_at||'');}
-function analysisMatchesCurrent(record){const f=record.fields||{};if(f['対象工程']&&f['対象工程']!==ANALYSIS_TARGET_PROCESS)return false;const tokens=candidateTokens().map(normText).filter(Boolean);if(!tokens.length)return true;const hay=[f['対象ID'],f['仕込号'],f['TNo'],f['備考'],f['サンプル種類']].map(normText).join(' ');return tokens.some(token=>token&&hay.includes(token));}
-function analysisCandidateSummary(record){const f=record.fields||{};const names=['ボーメ','日本酒度','アルコール%','酸度ml','アミノ酸度ml','グルコース','品温℃'];return names.map(name=>`${name}: ${f[name]||'未入力'}`).join(' / ');}
-function renderAnalysisCandidates(){const panel=document.getElementById('analysis-candidates');if(!panel)return;const all=readAnalysisRecords();const rows=all.filter(analysisMatchesCurrent).sort((a,b)=>analysisDate(b).localeCompare(analysisDate(a))).slice(0,12).map(record=>{const f=record.fields||{};return `<div class="check-item"><b>${escapeHtml(f['対象ID']||f['仕込号']||f['TNo']||'対象未入力')}</b> <span class="status draft">候補確認のみ</span> ${escapeHtml(f['分析日']||'日付未入力')} ${escapeHtml(f['分析時刻']||'')}<br><small>対象工程: ${escapeHtml(f['対象工程']||'未入力')} / 日数・日順: ${escapeHtml(f['日数日順']||'未入力')} / ${escapeHtml(analysisCandidateSummary(record))}</small></div>`;}).join('');panel.innerHTML=rows||'<div class="empty-note">現在の入力内容に近い分析記録候補はありません。仕込号・酒母番号・タンク番号を入れてから再表示してください。</div>';const status=document.getElementById('analysis-candidate-status');if(status)status.textContent=`分析記録 ${all.length}件中、候補 ${all.filter(analysisMatchesCurrent).length}件。表示だけで、工程側の保存内容は変更していません。`;}
-
 document.addEventListener('DOMContentLoaded',()=>{renderRecords();});
 </script>
   <script src="assets/ui.js?v=20260710independent01" defer></script>
