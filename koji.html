@@ -50,13 +50,14 @@
       <section class="input-block">
         <h2>製麹経過</h2>
         <p class="ledger-caption">引込・種切・切返・盛・仲仕事・仕舞仕事・最高温度・出麹を、台帳と同じ時系列で記録します。在室時間が空欄の場合は、引込日時から自動計算して保存します。</p>
+        <p class="empty-note">日時の安全確認：上段と経過表の引込・出麹日時は保存時に照合します。片方だけ入力されていれば補完し、異なる場合は保存を止めます。</p>
         <div class="data-table-wrap"><table class="data-table koji-event-editor"><thead><tr><th>操作</th><th>月日</th><th>時刻</th><th>在室h</th><th>品温℃</th><th>室温℃</th><th>湿度%</th><th>乾球℃</th><th>湿球℃</th><th>状貌</th><th>備考</th><th class="no-print">行操作</th></tr></thead><tbody id="kr-event-body"></tbody></table></div>
         <div class="actions no-print"><button id="kr-add-event" class="btn" type="button">経過行を追加</button><button class="btn primary" type="button" onclick="krSaveInput()">麹製造を保存</button><button class="btn" type="button" onclick="krResetInput()">入力を空にする</button></div>
         <details id="kr-delete-current-wrap" class="danger-details danger-inline no-print" hidden><summary>この製造単位を削除</summary><p class="empty-note">編集対象の記録だけを削除します。全工程バックアップJSONを確認してから実行してください。</p><button class="btn danger" type="button" onclick="krDeleteCurrent()">この記録を削除</button></details>
       </section>
     </div>
   </main>
-  <script src="assets/koji-records.js?v=20260713kojiLedger26"></script>
+  <script src="assets/koji-records.js?v=20260714kojiSafe32"></script>
   <script src="assets/ui.js?v=20260713kojiLedger26" defer></script>
 </body>
 </html>
