@@ -38,13 +38,6 @@
             <a class="btn primary" href="senmai.html">原料処理を追加</a>
           </div>
           <p class="empty-note">原料処理一覧は、記録の確認・編集・端末内保存を扱います。帳票出力はトップの「出力・確認」、JSONバックアップの作成・読み込み・復元は「データ管理」から行います。</p>
-          <details class="common-info-toggle danger-details" data-fold data-fold-closed="全件削除（危険操作）" data-fold-open="全件削除（危険操作）">
-            <summary><span>全件削除（危険操作）</span><b>開く ▼</b></summary>
-            <div class="danger-panel">
-              <p>原料処理の保存記録を全件削除します。必要な場合は、先にトップの「データ管理」で全工程JSONバックアップを作成してください。</p>
-              <button class="btn danger" type="button" onclick="deleteAllGenryoRecords()">原料処理保存記録を全件削除</button>
-            </div>
-          </details>
         </div>
         <div id="import-export-status" class="list-status"></div>
         <div id="genryo-record-list" class="record-list"></div>
@@ -118,7 +111,6 @@ function renderRecords(records,contextExpanded){return dailySummaryHtml(records,
 function loadGenryoList(){const out=document.getElementById('genryo-record-list');if(!out)return;saveFilterState();const all=safeReadRecords().sort(displayRecordSort);const matched=all.filter(recordMatches);const contextual=contextRecords(all,matched);const shown=limitedRecords(contextual.records);out.innerHTML=shown.length?renderRecords(shown,contextual.contextExpanded):'<div class="empty-note">保存記録はありません。</div>';const status=document.getElementById('list-status');if(status){status.textContent=`日別・履歴別明細 / ${contextual.contextLabel} / 表示 ${shown.length}件 / 該当 ${matched.length}件 / 保存 ${all.length}件`;}if(window.__workRecordBindFolds)window.__workRecordBindFolds();}
 
 function deleteGenryoRecord(encodedId){const recordId=decodeURIComponent(encodedId||'');if(!recordId)return;const records=safeReadRecords();const target=records.find(record=>record&&record.record_id===recordId);if(!target)return;const label=recordLabel(target);if(!confirm(`この原料処理記録を削除します。\n${label}\n\n削除前に必要ならトップの「データ管理」で全工程JSONバックアップを作成してください。`))return;const next=records.filter(record=>!(record&&record.record_id===recordId));if(!safeWriteRecords(next,'1件削除')){alert('削除できませんでした。');return;}const status=document.getElementById('import-export-status');if(status)status.textContent=`1件削除しました。保存 ${next.length}件`;loadGenryoList();}
-function deleteAllGenryoRecords(){const records=safeReadRecords();const count=records.length;const status=document.getElementById('import-export-status');if(!count){if(status)status.textContent='削除対象の原料処理保存記録はありません。';return;}if(!confirm(`原料処理の保存記録 ${count}件を全件削除します。\n\n必要な場合は、先にトップの「データ管理」で全工程JSONバックアップを作成してください。\nこの操作は元に戻せません。`))return;if(!confirm(`最終確認です。\n原料処理の保存記録 ${count}件を全件削除してよろしいですか？`))return;if(!safeWriteRecords([],'全件削除')){alert('全件削除できませんでした。');return;}if(status)status.textContent=`原料処理の保存記録 ${count}件を全件削除しました。`;loadGenryoList();}
 window.addEventListener('DOMContentLoaded',()=>{restoreFilterState();loadGenryoList();});
 </script>
   <script src="assets/ui.js?v=20260612genryohistoryrows" defer></script>

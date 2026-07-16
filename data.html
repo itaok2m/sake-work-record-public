@@ -78,11 +78,24 @@
         <div id="import-status" class="list-status"></div>
       </section>
 
+      <section class="input-block">
+        <h2>危険操作</h2>
+        <p class="empty-note">工程全体の削除はこの画面に集約します。各記録画面の1件削除は残します。</p>
+        <details class="common-info-toggle danger-details" data-fold data-fold-closed="原料処理の全件削除" data-fold-open="原料処理の全件削除">
+          <summary><span>原料処理の全件削除</span><b>開く ▼</b></summary>
+          <div class="danger-panel">
+            <p>原料処理の端末内保存記録だけを全件削除します。実行直前の全工程データは、復元可能なJSONとして自動作成します。</p>
+            <button class="btn danger" type="button" onclick="deleteAllGenryoRecordsWithBackup()">自動バックアップ後に原料処理を全件削除</button>
+            <div id="delete-genryo-status" class="list-status"></div>
+          </div>
+        </details>
+      </section>
+
     </div>
   </main>
 <script>
 const APP_NAME='sake-work-record';
-const APP_VERSION='0.15-data-all-backup-only-v23-20260713';
+const APP_VERSION='0.15-data-genryo-delete-backup-v24-20260716';
 const ALL_BACKUP_SCHEMA='workRecordAllBackupV1';
 const ALL_BACKUP_META_KEY='workRecordAllBackupMetaV1';
 const GENRYO_STORAGE_META_KEY='workRecordGenryoStorageMetaV1';
@@ -158,6 +171,37 @@ function renderRestorePanel(summary){const checks=summary.rows.map(row=>{const d
 }
 function previewAllBackupFile(file){if(!file)return;const status=document.getElementById('import-status');status.textContent='読み込み中';const reader=new FileReader();reader.onload=()=>{try{const parsed=JSON.parse(String(reader.result||''));pendingImport={payload:parsed,fileName:file.name||''};renderPreview(parsed,file.name||'');status.textContent='プレビューを表示しました。内容確認後に復元対象を選んでください。';}catch(err){pendingImport=null;document.getElementById('restore-panel').hidden=true;document.getElementById('import-preview').innerHTML='<div class="data-danger">JSONを読めませんでした。'+escapeHtml(err&&err.message?err.message:String(err))+'</div>';status.textContent='読み込み失敗';}finally{const input=document.getElementById('all-backup-file');if(input)input.value='';}};reader.readAsText(file,'utf-8');}
 function clearImportPreview(){pendingImport=null;document.getElementById('import-preview').textContent='全工程バックアップJSONを選択すると、ここに内容確認を表示します。';document.getElementById('restore-panel').hidden=true;document.getElementById('restore-panel').innerHTML='';document.getElementById('import-status').textContent='';}
+
+function deleteAllGenryoRecordsWithBackup(){
+  const def=STORE_DEFS.find(item=>item.id==='genryo');
+  const records=def?readRecords(def.storageKey):[];
+  const count=records.length;
+  const status=document.getElementById('delete-genryo-status');
+  if(!count){if(status)status.textContent='削除対象の原料処理保存記録はありません。';return;}
+  if(!confirm(`原料処理の保存記録 ${count}件を全件削除します。
+
+削除直前の全工程JSONバックアップを自動作成します。
+この操作は元に戻せません。`))return;
+  if(!confirm(`最終確認です。
+原料処理 ${count}件を、自動バックアップ作成後に全件削除してよろしいですか？`))return;
+  try{
+    const before=buildAllBackupPayload('before_delete_genryo_auto_backup');
+    const beforeName=`work_record_all_backup_before_delete_genryo_${compactDateTime()}.json`;
+    downloadJson(before,beforeName);
+    writeJsonToStorage(def.storageKey,[]);
+    const verify=readRecords(def.storageKey);
+    if(verify.length!==0)throw new Error(`削除確認NG: ${verify.length}件残っています`);
+    const at=nowIso();
+    writeJsonToStorage(GENRYO_STORAGE_META_KEY,{last_action:'データ管理から全件削除',last_count:0,last_at:at,write_verified:true,verified_count:0,verify_state:'deleted_all_from_data_management',verify_at:at,pre_delete_count:count,pre_delete_backup_filename:beforeName,page:location.pathname,origin:location.origin});
+    updateAllBackupMeta({last_auto_backup_at:before.exported_at,last_auto_backup_filename:beforeName,last_auto_backup_reason:'before_delete_genryo',last_deleted_store:'genryo',last_deleted_count:count,last_deleted_at:at});
+    if(status)status.textContent=`全工程バックアップを自動作成した後、原料処理 ${count}件を全件削除しました。ブラウザの保存先に ${beforeName} があるか確認してください。`;
+    refreshDeviceStatus();
+  }catch(err){
+    if(status)status.textContent='全件削除できませんでした。'+(err&&err.message?' '+err.message:'');
+    alert('全件削除できませんでした。'+(err&&err.message?'\n'+err.message:''));
+    refreshDeviceStatus();
+  }
+}
 function restoreSelectedStores(){if(!pendingImport||!pendingImport.payload){alert('復元する全工程JSONが選択されていません。');return;}const selected=[...document.querySelectorAll('.restore-store:checked')].map(input=>input.value);if(!selected.length){alert('復元対象工程を選択してください。');return;}const payload=pendingImport.payload;if(payload.schema!==ALL_BACKUP_SCHEMA||payload.backup_type!=='all'){alert('全工程一括JSONではありません。');return;}if(!confirm(`選択した工程を端末内保存へ復元します。\n対象: ${selected.join(', ')}\n\n復元前に、現在の端末内データを退避するバックアップファイルを自動作成します。`))return;try{const before=buildAllBackupPayload('before_restore_auto_backup');const beforeName=`work_record_all_backup_before_restore_${compactDateTime()}.json`;downloadJson(before,beforeName);let restored=[];selected.forEach(id=>{const def=STORE_DEFS.find(item=>item.id===id);if(!def||def.status!=='implemented')return;const store=payload.stores&&payload.stores[id];const records=Array.isArray(store?.records)?store.records:[];writeJsonToStorage(def.storageKey,records);writeJsonToStorage(def.storageKey.replace('RecordsV1','StorageMetaV1'),{last_action:'全工程JSONから復元',last_count:records.length,last_at:nowIso(),write_verified:true,verified_count:records.length,verify_state:'restored_from_all_backup',import_file:pendingImport.fileName,page:location.pathname,origin:location.origin});const verify=readRecords(def.storageKey);if(verify.length!==records.length)throw new Error(`${def.label}の復元確認NG: 期待 ${records.length}件 / 実際 ${verify.length}件`);restored.push(`${def.label} ${records.length}件`);});updateAllBackupMeta({last_imported_at:nowIso(),last_import_filename:pendingImport.fileName,last_pre_restore_backup_filename:beforeName,last_restored_stores:selected});document.getElementById('import-status').textContent=`復元前自動バックアップを作成した後、${restored.join(' / ')}を復元しました。ブラウザの保存先に ${beforeName} があるか確認してください。`;refreshDeviceStatus();}catch(err){alert('復元できませんでした。'+(err&&err.message?'\n'+err.message:''));}}
 
 document.addEventListener('DOMContentLoaded',()=>{refreshDeviceStatus();if(window.__workRecordBindFolds)window.__workRecordBindFolds();});
