@@ -15,20 +15,20 @@
   <main class="tool-body">
     <section class="screen-lead">
       <h1>原料処理一覧</h1>
-    </section>
+    <p class="empty-note">現在年度: <b data-current-brewery-year-label></b>（洗米日から酒造年度を判定）</p></section>
     <div class="wrapper wide">
       <section class="input-block">
         <h2>表示条件</h2>
         <div class="form-grid">
-          <div class="field"><label>表示期間（洗米日）開始</label><input id="filter-wash-start" type="date" oninput="loadGenryoList()"></div>
-          <div class="field"><label>表示期間（洗米日）終了</label><input id="filter-wash-end" type="date" oninput="loadGenryoList()"></div>
-          <div class="field"><label>表示順</label><select id="filter-sort-order" onchange="loadGenryoList()"><option value="desc">新しい順</option><option value="asc">古い順</option></select></div>
-          <div class="field"><label>用途分類</label><select id="filter-kind" onchange="loadGenryoList()"><option value="">すべて</option><option>酛麹</option><option>酛掛</option><option>添麹</option><option>添掛</option><option>仲麹</option><option>仲掛</option><option>留麹</option><option>留掛</option><option>四段</option><option>その他</option></select></div>
-          <div class="field"><label>仕込号</label><input id="filter-shikomi" placeholder="例：2 / 2号 / A1" oninput="loadGenryoList()"></div>
-          <div class="field"><label>キーワード</label><input id="filter-keyword" placeholder="米品種・備考など" oninput="loadGenryoList()"></div>
-          <div class="field"><label>表示範囲</label><select id="filter-context-mode" onchange="loadGenryoList()"><option value="exact">一致分のみ</option><option value="wash">同日の他の洗米も表示</option></select></div>
+          <div class="field"><label>表示期間（洗米日）開始</label><input id="filter-wash-start" type="date"></div>
+          <div class="field"><label>表示期間（洗米日）終了</label><input id="filter-wash-end" type="date"></div>
+          <div class="field"><label>表示順</label><select id="filter-sort-order"><option value="desc">新しい順</option><option value="asc">古い順</option></select></div>
+          <div class="field"><label>用途分類</label><select id="filter-kind"><option value="">すべて</option><option>酛麹</option><option>酛掛</option><option>添麹</option><option>添掛</option><option>仲麹</option><option>仲掛</option><option>留麹</option><option>留掛</option><option>四段</option><option>その他</option></select></div>
+          <div class="field"><label>仕込号</label><input id="filter-shikomi" placeholder="例：2 / 2号 / A1"></div>
+          <div class="field"><label>キーワード</label><input id="filter-keyword" placeholder="米品種・備考など"></div>
+          <div class="field"><label>表示範囲</label><select id="filter-context-mode"><option value="exact">一致分のみ</option><option value="wash">同日の他の洗米も表示</option></select></div>
         </div>
-        <div class="actions split-actions filter-actions"><button class="btn" type="button" onclick="clearGenryoFilters()">条件クリア</button></div>
+        <div class="actions split-actions filter-actions"><button class="btn primary" type="button" onclick="loadGenryoList()">表示を更新</button><button class="btn" type="button" onclick="clearGenryoFilters()">絞り込みを解除</button></div>
         <div id="list-status" class="list-status">0件</div>
       </section>
       <section class="input-block">
@@ -114,5 +114,6 @@ function deleteGenryoRecord(encodedId){const recordId=decodeURIComponent(encoded
 window.addEventListener('DOMContentLoaded',()=>{restoreFilterState();loadGenryoList();});
 </script>
   <script src="assets/ui.js?v=20260612genryohistoryrows" defer></script>
+  <script src="assets/brewery-year.js?v=20260716year01" defer></script>
 </body>
 </html>

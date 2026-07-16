@@ -15,29 +15,24 @@
   <main class="tool-body">
     <section class="screen-lead">
       <h1>原料処理の出力</h1>
-      <p>原料処理の保存記録から、Excelと印刷用HTMLを作成します。復元用バックアップはデータ管理で作成します。</p>
-      <div class="actions"><a class="btn primary" href="data.html">データ管理へ</a></div>
-    </section>
+      <p>保存済みの原料処理記録を、Excelまたは印刷用HTMLとして出力します。</p>
+    <p class="empty-note">現在年度: <b data-current-brewery-year-label></b>（洗米日から酒造年度を判定）</p></section>
     <div class="wrapper wide">
       <section id="genryo-output" class="input-block">
-        <h2>原料処理出力 試作</h2>
-        <div class="check-list">
-          <div class="check-item"><b>Excel</b><span class="status ok">外部出力</span> 日別帳票、米明細、集計表、項目対応、出力情報、備考全文を分けて作成します。Excel上での追記・計算は可。ただしアプリへ戻す正本にはしません。</div>
-          <div class="check-item"><b>印刷用HTML / PDF</b><span class="status draft">日別帳票</span> 人間が読む・印刷する・PDF保存するための帳票。Excelと同じ形にはしない。</div>
-        </div>
+        <h2>出力条件</h2>
         <div class="empty-note">日付基準は原料処理一覧と同じく洗米日固定です。蒸し実施日は帳票内で確認します。</div>
         <div class="form-grid" aria-label="原料処理出力条件">
-          <div class="field"><label for="genryo-output-date-from">洗米日 開始</label><input id="genryo-output-date-from" type="date" oninput="updateGenryoOutputStatus()"></div>
-          <div class="field"><label for="genryo-output-date-to">洗米日 終了</label><input id="genryo-output-date-to" type="date" oninput="updateGenryoOutputStatus()"></div>
-          <div class="field"><label for="genryo-output-kind">用途分類</label><select id="genryo-output-kind" onchange="updateGenryoOutputStatus()"><option value="">すべて</option><option>酛麹</option><option>酛掛</option><option>添麹</option><option>仲麹</option><option>留麹</option><option>添掛</option><option>仲掛</option><option>留掛</option><option>四段</option><option>その他</option></select></div>
-          <div class="field"><label for="genryo-output-shikomi">仕込号</label><input id="genryo-output-shikomi" placeholder="例：2 / 2号 / A1" oninput="updateGenryoOutputStatus()"></div>
-          <div class="field"><label for="genryo-output-keyword">キーワード</label><input id="genryo-output-keyword" placeholder="米品種・備考・蒸気圧など" oninput="updateGenryoOutputStatus()"></div>
+          <div class="field"><label for="genryo-output-date-from">洗米日 開始</label><input id="genryo-output-date-from" type="date"></div>
+          <div class="field"><label for="genryo-output-date-to">洗米日 終了</label><input id="genryo-output-date-to" type="date"></div>
+          <div class="field"><label for="genryo-output-kind">用途分類</label><select id="genryo-output-kind"><option value="">すべて</option><option>酛麹</option><option>酛掛</option><option>添麹</option><option>仲麹</option><option>留麹</option><option>添掛</option><option>仲掛</option><option>留掛</option><option>四段</option><option>その他</option></select></div>
+          <div class="field"><label for="genryo-output-shikomi">仕込号</label><input id="genryo-output-shikomi" placeholder="例：2 / 2号 / A1"></div>
+          <div class="field"><label for="genryo-output-keyword">キーワード</label><input id="genryo-output-keyword" placeholder="米品種・備考・蒸気圧など"></div>
         </div>
         <div class="actions split-actions">
           <a class="btn back" href="genryo.html">原料処理一覧へ</a>
           <button class="btn primary" type="button" onclick="exportGenryoXlsx(false)">条件でExcel出力</button>
           <button class="btn" type="button" onclick="openGenryoPrintHtml(false)">条件で印刷用HTML</button>
-          <button class="btn back" type="button" onclick="clearGenryoOutputFilters()">条件クリア</button>
+          <button class="btn back" type="button" onclick="clearGenryoOutputFilters()">絞り込みを解除</button>
         </div>
         <details class="card-details" data-fold data-fold-closed="全件出力を開く" data-fold-open="全件出力を閉じる">
           <summary><span>全件出力を開く</span><b>開く ▼</b></summary>
@@ -49,15 +44,6 @@
         <div id="report-output-status" class="list-status"></div>
       </section>
 
-      <section class="input-block">
-        <h2>人間用資料の候補</h2>
-        <div class="check-list">
-          <div class="check-item"><b>Excel</b><span class="status ok">外部出力</span> 集計・追記・共有に使う人間用資料。アプリへの復元正本にはしません。</div>
-          <div class="check-item"><b>CSV / TSV</b><span class="status draft">後回し</span> Googleスプレッドシートや外部集計へ渡すための候補。</div>
-          <div class="check-item"><b>印刷用HTML / PDF</b><span class="status ok">印刷</span> 税務調査・社内確認で人間が読む主役。</div>
-        </div>
-        <p class="empty-note">復元用バックアップはデータ管理で作成します。保存済みExcelやPDFを編集しても、アプリ内データは変わりません。</p>
-      </section>
     </div>
   </main>
 <script>
@@ -307,5 +293,6 @@ function openGenryoPrintHtml(allMode){const records=selectedGenryoRecords(Boolea
 window.addEventListener('DOMContentLoaded',()=>{updateGenryoOutputStatus();});
 </script>
   <script src="assets/ui.js?v=20260630genryofields" defer></script>
+  <script src="assets/brewery-year.js?v=20260716year01" defer></script>
 </body>
 </html>

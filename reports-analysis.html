@@ -42,21 +42,21 @@
         <h2>出力条件</h2>
         <p class="empty-note">月別と醪日数は、保存済み分析記録に存在する候補だけを表示します。表示範囲は画面確認・印刷・Excelのすべてに共通です。</p>
         <div class="analysis-output-controls" aria-label="分析記録出力条件">
-          <div class="field"><label for="ao-month">月別表示</label><select id="ao-month" onchange="aoUpdateStatus()"><option value="">すべて</option></select></div>
-          <div class="field"><label for="ao-sample">サンプル</label><select id="ao-sample" onchange="aoUpdateStatus()"><option value="">すべて</option><option value="酛">酛</option><option value="醪">醪</option><option value="酒">酒</option><option value="その他">その他</option></select></div>
-          <div class="field"><label for="ao-shikomi">仕込号</label><input id="ao-shikomi" oninput="aoUpdateStatus()"></div>
-          <div class="field"><label for="ao-tno">T.No</label><input id="ao-tno" oninput="aoUpdateStatus()"></div>
-          <div class="field"><label for="ao-moromi-day">醪日数</label><select id="ao-moromi-day" onchange="aoUpdateStatus()"><option value="">すべて</option></select></div>
-          <div class="field"><label for="ao-work">作業</label><select id="ao-work" onchange="aoUpdateStatus()"><option value="">すべて</option><option value="アル添前（上槽）">アル添前（上槽）</option><option value="添加後（四段）">添加後（四段）</option><option value="上槽前">上槽前</option><option value="検定">検定</option><option value="大吟検定">大吟検定</option><option value="滓引後・滓酒">滓引後・滓酒</option><option value="合併">合併</option><option value="濾過後">濾過後</option><option value="調合後">調合後</option><option value="火入後">火入後</option></select></div>
-          <div class="field"><label for="ao-sort">日付表示順</label><select id="ao-sort" onchange="aoUpdateStatus()"><option value="desc">新しい日付順</option><option value="asc">古い日付順</option></select></div>
-          <div class="field"><label for="ao-limit">表示範囲</label><select id="ao-limit" onchange="aoUpdateStatus()"><option value="100">100件</option><option value="200">200件</option><option value="all">全件</option></select></div>
-          <div class="field"><label for="ao-layout">出力レイアウト</label><select id="ao-layout" onchange="aoUpdateStatus()"><option value="list">表示中の分析一覧</option><option value="monthly">月別日別分析</option><option value="moromi">醪日数別分析</option><option value="work">作業別分析</option></select></div>
+          <div class="field"><label for="ao-month">月別表示</label><select id="ao-month"><option value="">すべて</option></select></div>
+          <div class="field"><label for="ao-sample">サンプル</label><select id="ao-sample"><option value="">すべて</option><option value="酛">酛</option><option value="醪">醪</option><option value="酒">酒</option><option value="その他">その他</option></select></div>
+          <div class="field"><label for="ao-shikomi">仕込号</label><input id="ao-shikomi"></div>
+          <div class="field"><label for="ao-tno">T.No</label><input id="ao-tno"></div>
+          <div class="field"><label for="ao-moromi-day">醪日数</label><select id="ao-moromi-day"><option value="">すべて</option></select></div>
+          <div class="field"><label for="ao-work">作業</label><select id="ao-work"><option value="">すべて</option><option value="アル添前（上槽）">アル添前（上槽）</option><option value="添加後（四段）">添加後（四段）</option><option value="上槽前">上槽前</option><option value="検定">検定</option><option value="大吟検定">大吟検定</option><option value="滓引後・滓酒">滓引後・滓酒</option><option value="合併">合併</option><option value="濾過後">濾過後</option><option value="調合後">調合後</option><option value="火入後">火入後</option></select></div>
+          <div class="field"><label for="ao-sort">日付表示順</label><select id="ao-sort"><option value="desc">新しい日付順</option><option value="asc">古い日付順</option></select></div>
+          <div class="field"><label for="ao-limit">表示範囲</label><select id="ao-limit"><option value="100">100件</option><option value="200">200件</option><option value="all">全件</option></select></div>
+          <div class="field"><label for="ao-layout">出力レイアウト</label><select id="ao-layout"><option value="list">表示中の分析一覧</option><option value="monthly">月別日別分析</option><option value="moromi">醪日数別分析</option><option value="work">作業別分析</option></select></div>
         </div>
         <div class="actions split-actions no-print">
           <button class="btn primary" type="button" onclick="aoRenderPreview()">表示を更新</button>
           <button class="btn" type="button" onclick="aoOpenPrint()">表示中を印刷 / PDF</button>
           <button class="btn" type="button" onclick="aoExportXlsx()">表示中をExcel出力</button>
-          <button class="btn back" type="button" onclick="aoClearFilters()">条件を空にする</button>
+          <button class="btn back" type="button" onclick="aoClearFilters()">絞り込みを解除</button>
         </div>
         <div id="ao-status" class="list-status"></div>
       </section>

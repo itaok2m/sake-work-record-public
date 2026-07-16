@@ -22,7 +22,7 @@
     </section>
     <div class="wrapper wide">
       <section class="input-block">
-        <h2>編集対象</h2>
+        <p class="empty-note">現在年度: <b data-current-brewery-year-label></b></p><h2>編集対象</h2>
         <div class="edit-status"><div><b id="kr-edit-target">新しい製造単位を入力中</b><div id="kr-input-status" class="list-status"></div></div><button class="btn" type="button" onclick="krResetInput()">新しい記録を開始</button></div>
         <input type="hidden" id="kr-record-id">
       </section>
@@ -30,7 +30,7 @@
         <h2>製造単位の基本情報</h2>
         <p class="source-note">原料処理からの候補取り込みは次段階です。現在は手入力で保存し、原料処理側の記録を自動変更しません。</p>
         <div class="koji-base-grid">
-          <div class="field short"><label>BY</label><select data-base="BY"><option value="">未選択</option><option>R7BY</option><option>R8BY</option></select></div>
+          <div class="field short"><label>BY</label><select data-base="BY" data-brewery-year></select></div>
           <div class="field medium"><label>用途</label><select data-base="use"><option value="">未選択</option><option>酛麹</option><option>添麹</option><option>仲麹</option><option>留麹</option><option>四段麹</option><option>その他</option></select></div>
           <div class="field short"><label>記号</label><input data-base="symbol" maxlength="2" placeholder="例：イ"></div>
           <div class="field short"><label>順号</label><input data-base="sequence" inputmode="numeric" maxlength="3" placeholder="例：1"></div>
@@ -61,5 +61,6 @@
   </main>
   <script src="assets/koji-records.js?v=20260716kojiInputUi33"></script>
   <script src="assets/ui.js?v=20260713kojiLedger26" defer></script>
+  <script src="assets/brewery-year.js?v=20260716year01" defer></script>
 </body>
 </html>

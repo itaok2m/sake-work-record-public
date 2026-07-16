@@ -18,15 +18,15 @@
     </section>
     <div class="wrapper wide">
       <section class="input-block">
-        <h2>醪基本情報</h2>
+        <p class="empty-note">現在年度: <b data-current-brewery-year-label></b></p><h2>醪基本情報</h2>
         <p class="empty-note">添・踊・仲・留を分割ボタンにせず、醪経過の中の工程区分として扱います。分析値は分析記録からの参照・候補取り込みを前提にします。</p>
         <div class="form-grid">
-          <div class="field"><label>BY</label><select data-field="BY"><option>R7BY</option><option>R8BY</option></select></div>
-          <div class="field"><label>仕込号</label><input data-field="仕込号" placeholder="例：12号"></div>
-          <div class="field"><label>記号・順号</label><input data-field="記号・順号" placeholder="例：イ-3"></div>
+          <div class="field short"><label>BY</label><select data-field="BY" data-brewery-year></select></div>
+          <div class="field short"><label>仕込号</label><input data-field="仕込号" placeholder="例：12号"></div>
+          <div class="field short"><label>記号</label><input data-field="記号" maxlength="6" placeholder="例：イ"></div><div class="field short"><label>順号</label><input data-field="順号" maxlength="6" inputmode="numeric" placeholder="例：3"></div>
           <div class="field"><label>タンク</label><input data-field="タンク" placeholder="例：T23"></div>
           <div class="field"><label>仕込種類</label><input data-field="仕込種類" placeholder="例：純米吟醸"></div>
-          <div class="field"><label>仕込開始日</label><input data-field="仕込開始日" type="date"></div>
+          <div class="field date"><label>仕込開始日</label><input data-field="仕込開始日" type="date"></div>
         </div>
       </section>
       <section class="input-block">
@@ -53,7 +53,7 @@
       <section class="input-block"><h2>後段計算・グラフ確認</h2><div class="check-list"><div class="check-item"><b>BMD / エキス分 / 原エキス分</b><span class="status draft">後段</span> ABT・もろみエール系の計算移植はまだ行いません。</div><div class="check-item"><b>グラフ確認</b><span class="status draft">後段</span> 分析記録との合成表示として段階実装します。</div></div></section>
     </div>
   </main>
-  <script>window.WORK_RECORD_PAGE={"process": "moromi", "label": "醪経過", "storageKey": "workRecordMoromiRecordsV1", "idPrefix": "moromi", "titleFields": ["仕込号", "記号・順号"], "dateFields": ["月日", "仕込開始日"], "summaryFields": ["工程区分", "日順", "操作", "品温℃", "分析参照"]};</script>
+  <script>window.WORK_RECORD_PAGE={"process": "moromi", "label": "醪経過", "storageKey": "workRecordMoromiRecordsV1", "idPrefix": "moromi", "titleFields": ["仕込号", "記号", "順号"], "dateFields": ["月日", "仕込開始日"], "summaryFields": ["工程区分", "日順", "操作", "品温℃", "分析参照"]};</script>
   <script>
 const RECORD_KEY=window.WORK_RECORD_PAGE.storageKey;
 const RECORD_LABEL=window.WORK_RECORD_PAGE.label;
@@ -66,11 +66,13 @@ function fieldValue(name){const el=document.querySelector(`[data-field="${name}"
 function setStatus(text){const el=document.getElementById('record-status');if(el)el.textContent=text;}
 function collectRecord(){const fields={};document.querySelectorAll('[data-field]').forEach(el=>{fields[el.dataset.field]=String(el.value||'').trim();});return {record_id:window.WORK_RECORD_PAGE.idPrefix+'_'+compactId(),schema:'workRecordThinRecordV01',process:window.WORK_RECORD_PAGE.process,label:RECORD_LABEL,created_at:nowIso(),updated_at:nowIso(),fields,candidate_imports:[],notes:'薄い実装。候補取り込み・グラフ・帳票は次段階。'};}
 function saveRecord(){try{const records=readRecords();const next=collectRecord();records.unshift(next);writeRecords(records);setStatus(`${RECORD_LABEL}を保存しました。端末内保存 ${records.length}件。正本化は全工程バックアップJSONで行います。`);renderRecords();}catch(err){alert('保存できませんでした。'+(err&&err.message?'\n'+err.message:''));}}
+function deleteRecord(encodedId){const id=decodeURIComponent(encodedId||'');const records=readRecords();const target=records.find(r=>r&&r.record_id===id);if(!target)return;if(!confirm(`${RECORD_LABEL}のこの1件を削除します。\n\n必要なら先にデータ管理で全工程JSONバックアップを作成してください。`))return;const next=records.filter(r=>!(r&&r.record_id===id));writeRecords(next);setStatus(`1件削除しました。端末内保存 ${next.length}件。`);renderRecords();}
 function clearForm(){document.querySelectorAll('[data-field]').forEach(el=>{el.value='';});setStatus('入力欄を空にしました。保存済み記録は消していません。');}
 function primaryValue(record,names){for(const name of names){const value=record.fields&&record.fields[name];if(value)return value;}return '未入力';}
-function renderRecords(){const records=readRecords();const list=document.getElementById('saved-records');if(!list)return;const rows=records.slice(0,20).map(record=>{const title=primaryValue(record,window.WORK_RECORD_PAGE.titleFields||[]);const date=primaryValue(record,window.WORK_RECORD_PAGE.dateFields||[]);const meta=(record.updated_at||record.created_at||'').replace('T',' ').slice(0,16);const summary=window.WORK_RECORD_PAGE.summaryFields.map(name=>`${name}: ${record.fields?.[name]||'未入力'}`).join(' / ');return `<div class="check-item"><b>${escapeHtml(title)}</b><span class="status draft">端末内</span> ${escapeHtml(date)}<br><small>${escapeHtml(summary)} / 更新 ${escapeHtml(meta)}</small></div>`;}).join('');list.innerHTML=rows||'<div class="empty-note">保存済み記録はまだありません。</div>';const count=document.getElementById('record-count');if(count)count.textContent=`端末内保存 ${records.length}件`;}
+function renderRecords(){const records=readRecords();const list=document.getElementById('saved-records');if(!list)return;const rows=records.slice(0,20).map(record=>{const title=primaryValue(record,window.WORK_RECORD_PAGE.titleFields||[]);const date=primaryValue(record,window.WORK_RECORD_PAGE.dateFields||[]);const meta=(record.updated_at||record.created_at||'').replace('T',' ').slice(0,16);const summary=window.WORK_RECORD_PAGE.summaryFields.map(name=>`${name}: ${record.fields?.[name]||'未入力'}`).join(' / ');return `<div class="check-item"><div class="edit-status"><div><b>${escapeHtml(title)}</b><span class="status draft">端末内</span> ${escapeHtml(date)}</div><button class="btn compact danger" type="button" onclick="deleteRecord('${encodeURIComponent(record.record_id||'')}')">1件削除</button></div><small>${escapeHtml(summary)} / 更新 ${escapeHtml(meta)}</small></div>`;}).join('');list.innerHTML=rows||'<div class="empty-note">保存済み記録はまだありません。</div>';const count=document.getElementById('record-count');if(count)count.textContent=`端末内保存 ${records.length}件`;}
 document.addEventListener('DOMContentLoaded',()=>{renderRecords();});
 </script>
   <script src="assets/ui.js?v=20260710independent01" defer></script>
+  <script src="assets/brewery-year.js?v=20260716year01" defer></script>
 </body>
 </html>

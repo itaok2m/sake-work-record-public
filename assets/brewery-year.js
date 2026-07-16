@@ -1,0 +1,14 @@
+(function(){
+'use strict';
+const KEY='workRecordCurrentBreweryYearV1';
+function eraYear(y){return y-2018;}
+function normalize(v){const t=String(v||'').trim();let m=t.match(/^R(\d+)BY$/i);if(m)return `R${Number(m[1])}BY`;m=t.match(/^(\d{4})BY$/);if(m)return `R${Number(m[1])-2018}BY`;m=t.match(/^令和(\d+)酒造年度$/);if(m)return `R${Number(m[1])}BY`;return t;}
+function parts(v){const c=normalize(v);const m=c.match(/^R(\d+)BY$/);if(!m)return {canonical:c,label:c};const r=Number(m[1]), y=2018+r;return {canonical:c,western:`${y}BY`,era:`令和${r}酒造年度`,label:`${c} / ${y}BY / 令和${r}酒造年度`};}
+function current(){try{return normalize(localStorage.getItem(KEY)||'R8BY')||'R8BY';}catch(_){return 'R8BY';}}
+function setCurrent(v){const c=normalize(v);if(c)try{localStorage.setItem(KEY,c)}catch(_){} return c;}
+function fromDate(v){const m=String(v||'').match(/^(\d{4})-(\d{2})/);if(!m)return '';const y=Number(m[1]),mon=Number(m[2]);return `R${(mon>=7?y:y-1)-2018}BY`;}
+function recordYears(keys){const out=new Set();keys.forEach(key=>{try{const a=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(a))a.forEach(r=>{const f=r&&r.fields||{};const candidates=[r.BY,r.by,r.brewery_year,f.BY,f.by,f.brewery_year,fromDate(r.wash_date),fromDate(r.pull_in_date),fromDate(f['引込日']),fromDate(f['日付'])];candidates.forEach(v=>{const c=normalize(v);if(/^R\d+BY$/.test(c))out.add(c);});});}catch(_){}});return [...out].sort((a,b)=>Number(a.match(/\d+/))-Number(b.match(/\d+/)));}
+function fill(select,years,includeAll){const old=normalize(select.value);select.innerHTML='';if(includeAll){const o=document.createElement('option');o.value='';o.textContent='すべて';select.appendChild(o);} years.forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=parts(y).label;select.appendChild(o);});if([...select.options].some(o=>o.value===old))select.value=old;else if(!includeAll&&years.length)select.value=years.includes(current())?current():years[0];}
+function init(){const keys=['workRecordGenryoRecordsV1','workRecordKojiRecordsV1','workRecordShuboRecordsV1','workRecordMoromiRecordsV1','workRecordAnalysisRecordsV1'];let years=recordYears(keys);if(!years.includes(current()))years.push(current());years=[...new Set(years)].sort((a,b)=>Number(a.match(/\d+/))-Number(b.match(/\d+/)));document.querySelectorAll('select[data-brewery-year]').forEach(s=>fill(s,years,s.dataset.allowAll==='true'));document.querySelectorAll('[data-current-brewery-year-label]').forEach(el=>el.textContent=parts(current()).label);}
+window.WorkRecordBreweryYear={KEY,normalize,parts,current,setCurrent,fromDate,recordYears,init};document.addEventListener('DOMContentLoaded',init);
+})();
