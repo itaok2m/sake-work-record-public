@@ -38,6 +38,18 @@
           <button class="btn" type="button" onclick="refreshDeviceStatus()">状態を更新</button>
           <a class="btn" href="genryo.html">原料処理一覧へ</a>
         </div>
+        <details class="common-info-toggle" data-fold data-fold-closed="詳しい保存診断" data-fold-open="詳しい保存診断">
+          <summary><span>詳しい保存診断</span><b>開く ▼</b></summary>
+          <div class="data-preview">
+            <h3>原料処理</h3>
+            <div id="genryo-storage-diagnosis" class="list-status">診断情報を確認中</div>
+            <div class="actions split-actions filter-actions">
+              <button class="btn" type="button" onclick="runGenryoStorageSelfTest()">端末内保存テスト</button>
+              <button class="btn" type="button" onclick="copyGenryoStorageDiagnosis()">診断情報をコピー</button>
+            </div>
+            <div id="storage-diagnosis-status" class="list-status"></div>
+          </div>
+        </details>
         <p class="empty-note">端末内保存は、作業中キャッシュ・直近復元用です。ブラウザ再起動で消える端末があるため、作業区切りで全工程バックアップを作成してください。</p>
       </section>
 
@@ -73,6 +85,8 @@ const APP_NAME='sake-work-record';
 const APP_VERSION='0.15-data-all-backup-only-v23-20260713';
 const ALL_BACKUP_SCHEMA='workRecordAllBackupV1';
 const ALL_BACKUP_META_KEY='workRecordAllBackupMetaV1';
+const GENRYO_STORAGE_META_KEY='workRecordGenryoStorageMetaV1';
+const GENRYO_STORAGE_PROBE_KEY='workRecordGenryoStorageProbeV1';
 const STORE_DEFS=[
   {id:'genryo',label:'原料処理',schema:'workRecordGenryoRecordsV1',storageKey:'workRecordGenryoRecordsV1',status:'implemented'},
   {id:'koji',label:'麹製造',schema:'workRecordKojiRecordsV1',storageKey:'workRecordKojiRecordsV1',status:'implemented'},
@@ -121,11 +135,18 @@ function downloadJson(payload,filename){const blob=new Blob([JSON.stringify(payl
 function updateAllBackupMeta(extra){const meta={...(readMeta()||{}),...extra,updated_at:nowIso(),page:location.pathname,origin:location.origin};try{writeJsonToStorage(ALL_BACKUP_META_KEY,meta);}catch(_err){}return meta;}
 function exportAllBackup(){const payload=buildAllBackupPayload('manual_export');const by=(payload.brewery_years&&payload.brewery_years.length===1)?payload.brewery_years[0]:'multiBY';const filename=`work_record_all_backup_${by}_${compactDateTime()}.json`;downloadJson(payload,filename);updateAllBackupMeta({last_exported_at:payload.exported_at,last_export_filename:filename,last_export_counts:payload.counts,last_export_brewery_years:payload.brewery_years});document.getElementById('export-status').textContent=`全工程バックアップを作成しました。ファイル名: ${filename} / 原料処理 ${payload.counts.genryo_records}件 / 米明細 ${payload.counts.genryo_rice_cards}件。ブラウザの保存先にファイルがあるか確認してください。`;refreshDeviceStatus();}
 function statusLabel(status){if(status==='implemented')return '実装済み';if(status==='not_implemented')return '未実装';if(status==='planned')return '計画中';return status||'';}
+function inspectStorage(key){const result={storage_ok:storageAvailable(),state:'unknown',message:'未確認',has_key:false,count:0,raw_length:0,error:''};try{const raw=localStorage.getItem(key);result.has_key=raw!==null;result.raw_length=raw?raw.length:0;if(raw===null){result.state='key_missing';result.message='保存キーなし';return result;}const parsed=JSON.parse(raw);if(!Array.isArray(parsed)){result.state='not_array';result.message='保存データ形式不正';return result;}result.count=parsed.length;result.state=parsed.length?'ok':'empty';result.message=parsed.length?'保存あり':'保存キーあり・0件';return result;}catch(err){result.state='parse_error';result.message='JSON解析エラー';result.error=err&&err.message?err.message:String(err);return result;}}
+function readObjectFromStorage(key){const parsed=readJsonFromStorage(key,null);return parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:null;}
+function genryoStorageDiagnosisText(){const def=STORE_DEFS.find(item=>item.id==='genryo');const st=inspectStorage(def.storageKey);const meta=readObjectFromStorage(GENRYO_STORAGE_META_KEY);const probe=readObjectFromStorage(GENRYO_STORAGE_PROBE_KEY);return ['原料処理 保存診断',`URL: ${location.href}`,`origin: ${location.origin}`,`path: ${location.pathname}`,`storage_ok: ${st.storage_ok}`,`state: ${st.state}`,`message: ${st.message}`,`has_key: ${st.has_key}`,`count: ${st.count}`,`raw_length: ${st.raw_length}`,`meta: ${JSON.stringify(meta)}`,`probe: ${JSON.stringify(probe)}`].join('\n');}
+function genryoStorageDiagnosisHtml(){const def=STORE_DEFS.find(item=>item.id==='genryo');const st=inspectStorage(def.storageKey);const meta=readObjectFromStorage(GENRYO_STORAGE_META_KEY);const probe=readObjectFromStorage(GENRYO_STORAGE_PROBE_KEY);const lastAt=meta?.last_at?formatDateTime(meta.last_at):'未記録';const lastAction=meta?.last_action||'未記録';const lastCount=typeof meta?.last_count==='number'?`${meta.last_count}件`:'未記録';const verifyText=meta?.verify_at?`${meta.write_verified?'OK':'NG'} / ${meta.verified_count??'-'}件 / ${meta.verify_state||'-'}`:'未記録';const probeAt=probe?.last_write_at?formatDateTime(probe.last_write_at):'未記録';let warning='';if(!st.storage_ok)warning=' / ブラウザ保存不可';else if(st.state==='key_missing')warning=' / 保存キーなし';else if(st.state==='parse_error')warning=' / 保存データ破損';else if(st.count===0&&meta?.last_count>0)warning=' / 以前の保存記録情報あり・本体0件';else if(st.count===0)warning=' / この端末には記録なし';return `保存記録 ${st.count}件 / 保存テスト ${st.storage_ok?'OK':'NG'} / 状態 ${escapeHtml(st.message)}${warning}<br>保存キー ${escapeHtml(def.storageKey)} / キー有無 ${st.has_key?'あり':'なし'} / 文字数 ${st.raw_length}<br>最終操作 ${escapeHtml(lastAction)} / 最終件数 ${escapeHtml(lastCount)} / 最終日時 ${escapeHtml(lastAt)}<br>直近保存確認 ${escapeHtml(verifyText)} / 保存テスト最終 ${escapeHtml(probeAt)}<br>保存場所 ${escapeHtml(location.origin+location.pathname)}`;}
+function refreshStorageDiagnosis(){const el=document.getElementById('genryo-storage-diagnosis');if(el)el.innerHTML=genryoStorageDiagnosisHtml();}
+function runGenryoStorageSelfTest(){const status=document.getElementById('storage-diagnosis-status');try{const at=nowIso();const def=STORE_DEFS.find(item=>item.id==='genryo');writeJsonToStorage(GENRYO_STORAGE_PROBE_KEY,{last_write_at:at,last_action:'手動保存テスト',expected_count:readRecords(def.storageKey).length,page:location.pathname,origin:location.origin});const probe=readObjectFromStorage(GENRYO_STORAGE_PROBE_KEY);if(!probe||probe.last_write_at!==at)throw new Error('保存テスト値を読み戻せませんでした');if(status)status.textContent='端末内保存テストOK。ページ更新・ブラウザ再起動・PC再起動後にも「保存テスト最終」が残るか確認してください。';}catch(err){if(status)status.textContent='端末内保存テストNG: '+(err&&err.message?err.message:String(err));}refreshStorageDiagnosis();}
+function copyGenryoStorageDiagnosis(){const text=genryoStorageDiagnosisText();const status=document.getElementById('storage-diagnosis-status');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>{if(status)status.textContent='診断情報をコピーしました。';}).catch(()=>{window.prompt('診断情報をコピーしてください',text);});}else{window.prompt('診断情報をコピーしてください',text);}}
 function refreshDeviceStatus(){const ok=storageAvailable();const payload=buildAllBackupPayload('status_preview');const meta=readMeta();const latest=latestUpdatedAt(Object.values(payload.stores).flatMap(store=>store.records||[]));const backupAt=meta?.last_exported_at||'';const backupState=backupAt?'外部バックアップ作成操作あり':'外部バックアップ未作成';document.getElementById('device-status').innerHTML=`端末内保存 ${ok?'OK':'NG'} / ${escapeHtml(backupState)} / 最新更新 ${escapeHtml(formatDateTime(latest))}`;
   const genryo=payload.stores.genryo.summary;
   document.getElementById('device-kpis').innerHTML=[
     ['原料処理',`${genryo.records||0}件`],['麹製造',`${payload.stores.koji.summary.records||0}件`],['酒母製造',`${payload.stores.shubo.summary.records||0}件`],['醪経過',`${payload.stores.moromi.summary.records||0}件`],['分析記録',`${payload.stores.analysis.summary.records||0}件`],['最終バックアップ',formatDateTime(backupAt)]
-  ].map(([k,v])=>`<div class="data-kpi"><span>${escapeHtml(k)}</span><b>${escapeHtml(v)}</b></div>`).join('');}
+  ].map(([k,v])=>`<div class="data-kpi"><span>${escapeHtml(k)}</span><b>${escapeHtml(v)}</b></div>`).join('');refreshStorageDiagnosis();}
 function summarizeBackupPayload(payload){const stores=payload?.stores&&typeof payload.stores==='object'?payload.stores:{};const rows=STORE_DEFS.map(def=>{const store=stores[def.id]&&typeof stores[def.id]==='object'?stores[def.id]:{};const records=Array.isArray(store.records)?store.records:[];const summary=store.summary&&typeof store.summary==='object'?store.summary:{};return {id:def.id,label:store.label||def.label,schema:store.schema||def.schema,status:store.status||def.status,count:records.length,riceCards:def.id==='genryo'?(summary.rice_cards??genryoRiceCards(records)):'',latest:summary.latest_updated_at||latestUpdatedAt(records),records};});
   const genryo=rows.find(row=>row.id==='genryo');const bys=uniqueValues([...(Array.isArray(payload?.brewery_years)?payload.brewery_years:[]),...((genryo?.records||[]).map(record=>byFromDate(record?.wash_date)))]).sort();return {schema:payload?.schema||'',app:payload?.app||'',app_version:payload?.app_version||'',backup_type:payload?.backup_type||'',exported_at:payload?.exported_at||payload?.created_at||'',brewery_years:bys,rows};}
 function renderPreview(payload,fileName){const summary=summarizeBackupPayload(payload);const valid=summary.schema===ALL_BACKUP_SCHEMA&&summary.backup_type==='all'&&payload&&typeof payload==='object';const rowsHtml=summary.rows.map(row=>`<tr><td>${escapeHtml(row.label)}</td><td>${escapeHtml(row.schema)}</td><td>${escapeHtml(statusLabel(row.status))}</td><td>${escapeHtml(row.count)}</td><td>${escapeHtml(row.riceCards)}</td><td>${escapeHtml(formatDateTime(row.latest))}</td></tr>`).join('');
