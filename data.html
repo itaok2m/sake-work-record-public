@@ -16,7 +16,8 @@
     .data-danger{margin-top:10px;padding:10px;border-radius:12px;background:rgba(210,60,60,.08);border:1px solid rgba(180,50,50,.35)}
     .store-check-list{display:grid;gap:8px;margin-top:10px}.store-check{display:flex;gap:8px;align-items:flex-start;border:1px solid rgba(47,66,87,.18);border-radius:12px;padding:10px;background:rgba(255,255,255,.55)}
     .store-check input{margin-top:.25em}.store-check small{display:block;opacity:.72}.file-line{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.file-line input[type=file]{max-width:100%}
-    @media (prefers-color-scheme: dark){.data-kpi,.data-preview,.store-check{background:rgba(255,255,255,.04)}.data-table th{background:rgba(255,255,255,.08)}.data-warning{background:rgba(255,214,102,.12)}.data-danger{background:rgba(210,60,60,.12)}}
+    .merge-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}.merge-summary{border:1px solid rgba(47,66,87,.18);border-radius:12px;padding:9px;background:rgba(255,255,255,.55)}.merge-summary span{display:block;font-size:.8rem;opacity:.72}.merge-summary b{font-size:1.15rem}.merge-result-new{border-left:5px solid #3b8b5a}.merge-result-same{border-left:5px solid #718096}.merge-result-update{border-left:5px solid #c58a00}.merge-result-duplicate{border-left:5px solid #b86d00}.merge-result-conflict{border-left:5px solid #b94040}.merge-record-label{display:block;font-weight:700}.merge-record-note{display:block;font-size:.82rem;opacity:.78;margin-top:3px}
+    @media (prefers-color-scheme: dark){.data-kpi,.data-preview,.store-check,.merge-summary{background:rgba(255,255,255,.04)}.data-table th{background:rgba(255,255,255,.08)}.data-warning{background:rgba(255,214,102,.12)}.data-danger{background:rgba(210,60,60,.12)}}
   </style>
 </head>
 <body>
@@ -78,6 +79,20 @@
         <div id="import-status" class="list-status"></div>
       </section>
 
+
+      <section class="input-block">
+        <h2>工程別JSON集約（原料処理・試験実装）</h2>
+        <p>担当者から受け取った原料処理の工程別JSONを、現在の原料処理記録と比較します。ファイルを選択しただけでは端末内データは変わりません。</p>
+        <div class="data-warning">既存の「全工程復元」とは別機能です。この版で追加できるのは「新規」と判定された記録だけです。同一・更新候補・重複疑い・競合は表示のみで、自動上書きしません。</div>
+        <div class="file-line">
+          <input id="process-merge-file" type="file" accept="application/json,.json" onchange="previewGenryoProcessFile(this.files&&this.files[0])">
+          <button class="btn" type="button" onclick="clearGenryoMergePreview()">集約プレビューを消す</button>
+        </div>
+        <div id="process-merge-preview" class="data-preview">原料処理の工程別JSONを選択すると、ここに5分類の確認結果を表示します。</div>
+        <div id="process-merge-apply" class="data-preview" hidden></div>
+        <div id="process-merge-status" class="list-status"></div>
+      </section>
+
       <section class="input-block">
         <h2>危険操作</h2>
         <p class="empty-note">工程全体の削除はこの画面に集約します。各記録画面の1件削除は残します。</p>
@@ -95,11 +110,12 @@
   </main>
 <script>
 const APP_NAME='sake-work-record';
-const APP_VERSION='0.15-data-genryo-delete-backup-v24-20260716';
+const APP_VERSION='0.15-data-genryo-process-merge-v01-20260716';
 const ALL_BACKUP_SCHEMA='workRecordAllBackupV1';
 const ALL_BACKUP_META_KEY='workRecordAllBackupMetaV1';
 const GENRYO_STORAGE_META_KEY='workRecordGenryoStorageMetaV1';
 const GENRYO_STORAGE_PROBE_KEY='workRecordGenryoStorageProbeV1';
+const PROCESS_TRANSFER_SCHEMA='workRecordProcessTransferV1';
 const STORE_DEFS=[
   {id:'genryo',label:'原料処理',schema:'workRecordGenryoRecordsV1',storageKey:'workRecordGenryoRecordsV1',status:'implemented'},
   {id:'koji',label:'麹製造',schema:'workRecordKojiRecordsV1',storageKey:'workRecordKojiRecordsV1',status:'implemented'},
@@ -111,6 +127,7 @@ const STORE_DEFS=[
   {id:'binzume',label:'瓶詰め',schema:'workRecordBinzumeRecordsV1',storageKey:'workRecordBinzumeRecordsV1',status:'planned'}
 ];
 let pendingImport=null;
+let pendingGenryoMerge=null;
 function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function nowIso(){return new Date().toISOString();}
 function compactDateTime(date=new Date()){const pad=n=>String(n).padStart(2,'0');return date.getFullYear()+pad(date.getMonth()+1)+pad(date.getDate())+'_'+pad(date.getHours())+pad(date.getMinutes())+pad(date.getSeconds());}
@@ -203,6 +220,130 @@ function deleteAllGenryoRecordsWithBackup(){
   }
 }
 function restoreSelectedStores(){if(!pendingImport||!pendingImport.payload){alert('復元する全工程JSONが選択されていません。');return;}const selected=[...document.querySelectorAll('.restore-store:checked')].map(input=>input.value);if(!selected.length){alert('復元対象工程を選択してください。');return;}const payload=pendingImport.payload;if(payload.schema!==ALL_BACKUP_SCHEMA||payload.backup_type!=='all'){alert('全工程一括JSONではありません。');return;}if(!confirm(`選択した工程を端末内保存へ復元します。\n対象: ${selected.join(', ')}\n\n復元前に、現在の端末内データを退避するバックアップファイルを自動作成します。`))return;try{const before=buildAllBackupPayload('before_restore_auto_backup');const beforeName=`work_record_all_backup_before_restore_${compactDateTime()}.json`;downloadJson(before,beforeName);let restored=[];selected.forEach(id=>{const def=STORE_DEFS.find(item=>item.id===id);if(!def||def.status!=='implemented')return;const store=payload.stores&&payload.stores[id];const records=Array.isArray(store?.records)?store.records:[];writeJsonToStorage(def.storageKey,records);writeJsonToStorage(def.storageKey.replace('RecordsV1','StorageMetaV1'),{last_action:'全工程JSONから復元',last_count:records.length,last_at:nowIso(),write_verified:true,verified_count:records.length,verify_state:'restored_from_all_backup',import_file:pendingImport.fileName,page:location.pathname,origin:location.origin});const verify=readRecords(def.storageKey);if(verify.length!==records.length)throw new Error(`${def.label}の復元確認NG: 期待 ${records.length}件 / 実際 ${verify.length}件`);restored.push(`${def.label} ${records.length}件`);});updateAllBackupMeta({last_imported_at:nowIso(),last_import_filename:pendingImport.fileName,last_pre_restore_backup_filename:beforeName,last_restored_stores:selected});document.getElementById('import-status').textContent=`復元前自動バックアップを作成した後、${restored.join(' / ')}を復元しました。ブラウザの保存先に ${beforeName} があるか確認してください。`;refreshDeviceStatus();}catch(err){alert('復元できませんでした。'+(err&&err.message?'\n'+err.message:''));}}
+
+
+function stableNormalize(value){
+  if(Array.isArray(value))return value.map(stableNormalize);
+  if(value&&typeof value==='object')return Object.keys(value).sort().reduce((out,key)=>{out[key]=stableNormalize(value[key]);return out;},{});
+  return value;
+}
+function stableJson(value){return JSON.stringify(stableNormalize(value));}
+function validIsoTime(value){if(!value)return false;const d=new Date(value);return !Number.isNaN(d.getTime());}
+function normalizedText(value){return String(value??'').trim().replace(/\s+/g,' ').toLowerCase();}
+function normalizedNumberText(value){const text=normalizedText(value).replace(/,/g,'.');if(!text)return '';const n=Number(text);return Number.isFinite(n)?String(n):text;}
+function genryoBusinessFingerprint(record){
+  const cards=Array.isArray(record?.rice_cards)?record.rice_cards:[];
+  const cardParts=cards.map(card=>[
+    normalizedText(card?.usage_kind),normalizedText(card?.shikomi_no),normalizedText(card?.rice_variety),
+    normalizedNumberText(card?.polishing_rate),normalizedNumberText(card?.rice_kg),normalizedText(card?.kenjo_order||card?.steam_order)
+  ].join('|')).filter(part=>part.replace(/\|/g,''));
+  const by=normalizedText(record?.brewery_year||record?.BY||byFromDate(record?.wash_date));
+  const wash=normalizeDate(record?.wash_date);
+  if(!wash&&!by&&!cardParts.length)return '';
+  return [by,wash,cardParts.sort().join('||')].join('::');
+}
+function genryoMergeLabel(record){
+  const cards=Array.isArray(record?.rice_cards)?record.rice_cards:[];
+  const purposes=uniqueValues(cards.map(card=>card?.usage_kind)).join('・')||'用途未入力';
+  const shikomi=uniqueValues(cards.map(card=>card?.shikomi_no)).join('・')||'仕込号未入力';
+  const kg=genryoTotalKg([record]);
+  return `${record?.wash_date||'洗米日未入力'} / ${purposes} / ${shikomi} / ${Math.round(kg*10)/10}kg`;
+}
+function classifyGenryoIncoming(record,existingRecords,duplicateIncomingIds){
+  const id=normalizedText(record?.record_id);
+  const process=normalizedText(record?.process);
+  if(process&&process!=='genryo')return {category:'conflict',reason:'レコードの工程区分が原料処理と一致しません。'};
+  if(record?.schema&&record.schema!=='workRecordGenryoRecordsV1')return {category:'conflict',reason:'未知または不一致のレコードschemaです。'};
+  if(id&&duplicateIncomingIds.has(id))return {category:'conflict',reason:'同じ工程別JSON内でrecord_idが重複しています。'};
+  const fingerprint=genryoBusinessFingerprint(record);
+  const sameId=id?existingRecords.find(item=>normalizedText(item?.record_id)===id):null;
+  if(sameId){
+    if(stableJson(sameId)===stableJson(record))return {category:'same',reason:'同じrecord_idで内容も一致しています。'};
+    const incomingAt=record?.updated_at;
+    const currentAt=sameId?.updated_at;
+    if(!validIsoTime(incomingAt)||!validIsoTime(currentAt))return {category:'conflict',reason:'更新日時を安全に比較できません。'};
+    const incomingTime=new Date(incomingAt).getTime();
+    const currentTime=new Date(currentAt).getTime();
+    if(incomingTime>currentTime)return {category:'update',reason:'同じrecord_idで受信側の更新日時が新しいため、更新候補です。'};
+    if(incomingTime===currentTime)return {category:'conflict',reason:'同じ更新日時なのに内容が異なります。'};
+    return {category:'conflict',reason:'受信側が古いため、自動巻戻しを禁止します。'};
+  }
+  const fingerprintMatch=fingerprint?existingRecords.find(item=>genryoBusinessFingerprint(item)===fingerprint):null;
+  if(fingerprintMatch)return {category:'duplicate',reason:'record_idは異なりますが、洗米日・用途・仕込号・米明細が強く一致します。'};
+  if(!id)return {category:'conflict',reason:'record_idがなく、安全に新規記録として確定できません。'};
+  if(!validIsoTime(record?.updated_at)&&!validIsoTime(record?.created_at))return {category:'conflict',reason:'作成日時・更新日時がなく、安全確認できません。'};
+  return {category:'new',reason:'同じrecord_idと強い業務照合候補がありません。'};
+}
+function validateGenryoTransfer(payload){
+  const errors=[];
+  if(!payload||typeof payload!=='object'||Array.isArray(payload))errors.push('JSONの最上位がオブジェクトではありません。');
+  if(payload?.schema!==PROCESS_TRANSFER_SCHEMA)errors.push(`schemaが ${PROCESS_TRANSFER_SCHEMA} ではありません。`);
+  if(payload?.process!=='genryo')errors.push('工程区分が原料処理ではありません。');
+  if(payload?.process_schema&&payload.process_schema!=='workRecordGenryoRecordsV1')errors.push('process_schemaが現行原料処理形式と一致しません。');
+  if(!Array.isArray(payload?.records))errors.push('recordsが配列ではありません。');
+  if(Array.isArray(payload?.records)&&Number.isFinite(Number(payload?.record_count))&&Number(payload.record_count)!==payload.records.length)errors.push('record_countとrecords件数が一致しません。');
+  return errors;
+}
+function categoryLabel(category){return ({new:'新規',same:'同一',update:'更新候補',duplicate:'重複疑い',conflict:'競合'})[category]||category;}
+function categoryClass(category){return `merge-result-${category}`;}
+function renderGenryoMergePreview(payload,fileName){
+  const errors=validateGenryoTransfer(payload);
+  const preview=document.getElementById('process-merge-preview');
+  const apply=document.getElementById('process-merge-apply');
+  if(errors.length){
+    pendingGenryoMerge=null;apply.hidden=true;apply.innerHTML='';
+    preview.innerHTML=`<div class="data-danger"><b>工程別JSONとして読み込めません。</b><br>${errors.map(escapeHtml).join('<br>')}</div>`;
+    return;
+  }
+  const existing=readRecords('workRecordGenryoRecordsV1');
+  const ids=(payload.records||[]).map(record=>normalizedText(record?.record_id)).filter(Boolean);
+  const duplicateIncomingIds=new Set(ids.filter((id,index)=>ids.indexOf(id)!==index));
+  const results=(payload.records||[]).map((record,index)=>({index,record,...classifyGenryoIncoming(record,existing,duplicateIncomingIds)}));
+  const counts={new:0,same:0,update:0,duplicate:0,conflict:0};results.forEach(item=>counts[item.category]++);
+  pendingGenryoMerge={payload,fileName,results,existingCount:existing.length};
+  const rows=results.map(item=>`<tr class="${categoryClass(item.category)}"><td>${item.category==='new'?`<input type="checkbox" class="merge-new-record" value="${item.index}" checked aria-label="新規記録を追加">`:''}</td><td><span class="status ${item.category==='new'?'ok':item.category==='same'?'':'warn'}">${escapeHtml(categoryLabel(item.category))}</span></td><td><span class="merge-record-label">${escapeHtml(genryoMergeLabel(item.record))}</span><span class="merge-record-note">${escapeHtml(item.reason)}</span></td><td>${escapeHtml(item.record?.record_id||'なし')}</td><td>${escapeHtml(formatDateTime(item.record?.updated_at||item.record?.created_at))}</td></tr>`).join('');
+  preview.innerHTML=`<h3>原料処理JSON 集約前プレビュー</h3><div class="check-list"><div class="check-item"><b>ファイル</b>${escapeHtml(fileName)}</div><div class="check-item"><b>transfer_id</b>${escapeHtml(payload.transfer_id||'未記録')}</div><div class="check-item"><b>書き出し日時</b>${escapeHtml(formatDateTime(payload.exported_at))}</div><div class="check-item"><b>受信件数</b>${payload.records.length}件 / 現在 ${existing.length}件</div></div><div class="merge-summary-grid">${Object.keys(counts).map(key=>`<div class="merge-summary ${categoryClass(key)}"><span>${escapeHtml(categoryLabel(key))}</span><b>${counts[key]}件</b></div>`).join('')}</div><div class="data-table-wrap"><table class="data-table"><thead><tr><th>追加</th><th>判定</th><th>記録</th><th>record_id</th><th>更新日時</th></tr></thead><tbody>${rows||'<tr><td colspan="5">記録がありません。</td></tr>'}</tbody></table></div>`;
+  apply.hidden=false;
+  apply.innerHTML=`<h3>適用対象</h3><p>チェックした「新規」だけを原料処理へ追加します。既存記録と他工程は変更しません。</p><div class="actions split-actions filter-actions"><button class="btn primary" type="button" onclick="applySelectedGenryoNewRecords()" ${counts.new?'':'disabled'}>選択した新規記録を追加</button></div>`;
+}
+function previewGenryoProcessFile(file){
+  if(!file)return;
+  const status=document.getElementById('process-merge-status');status.textContent='読み込み中';
+  const reader=new FileReader();reader.onload=()=>{try{const parsed=JSON.parse(String(reader.result||''));renderGenryoMergePreview(parsed,file.name||'');status.textContent=pendingGenryoMerge?'5分類のプレビューを表示しました。まだ端末内データは変更していません。':'読み込み内容を確認してください。';}catch(err){pendingGenryoMerge=null;document.getElementById('process-merge-apply').hidden=true;document.getElementById('process-merge-preview').innerHTML=`<div class="data-danger">JSONを読めませんでした。${escapeHtml(err&&err.message?err.message:String(err))}</div>`;status.textContent='読み込み失敗';}finally{const input=document.getElementById('process-merge-file');if(input)input.value='';}};reader.readAsText(file,'utf-8');
+}
+function clearGenryoMergePreview(){pendingGenryoMerge=null;document.getElementById('process-merge-preview').textContent='原料処理の工程別JSONを選択すると、ここに5分類の確認結果を表示します。';document.getElementById('process-merge-apply').hidden=true;document.getElementById('process-merge-apply').innerHTML='';document.getElementById('process-merge-status').textContent='';}
+function applySelectedGenryoNewRecords(){
+  if(!pendingGenryoMerge){alert('集約する原料処理JSONが選択されていません。');return;}
+  const selected=[...document.querySelectorAll('.merge-new-record:checked')].map(input=>Number(input.value)).filter(Number.isInteger);
+  const selectedRecords=selected.map(index=>pendingGenryoMerge.results.find(item=>item.index===index)).filter(item=>item&&item.category==='new').map(item=>item.record);
+  if(!selectedRecords.length){alert('追加する新規記録を選択してください。');return;}
+  if(!confirm(`原料処理の新規記録 ${selectedRecords.length}件を追加します。\n\n適用前に現在の全工程JSONバックアップを自動作成します。既存記録と他工程は変更しません。`))return;
+  try{
+    const current=readRecords('workRecordGenryoRecordsV1');
+    const currentIds=new Set(current.map(record=>normalizedText(record?.record_id)).filter(Boolean));
+    const safeRecords=selectedRecords.filter(record=>{const id=normalizedText(record?.record_id);return id&&!currentIds.has(id);});
+    if(safeRecords.length!==selectedRecords.length)throw new Error('プレビュー後に同じrecord_idの記録が追加されたため、安全のため中止しました。再度JSONを読み込んでください。');
+    const before=buildAllBackupPayload('before_process_merge_auto_backup');
+    const beforeName=`work_record_all_backup_before_process_merge_${compactDateTime()}.json`;
+    downloadJson(before,beforeName);
+    const next=[...safeRecords,...current];
+    try{
+      writeJsonToStorage('workRecordGenryoRecordsV1',next);
+      const verify=readRecords('workRecordGenryoRecordsV1');
+      if(verify.length!==next.length)throw new Error(`追加確認NG: 期待 ${next.length}件 / 実際 ${verify.length}件`);
+    }catch(writeErr){
+      writeJsonToStorage('workRecordGenryoRecordsV1',current);
+      throw writeErr;
+    }
+    const verify=readRecords('workRecordGenryoRecordsV1');
+    const at=nowIso();
+    writeJsonToStorage(GENRYO_STORAGE_META_KEY,{last_action:'工程別JSONから新規集約',last_count:verify.length,last_at:at,write_verified:true,verified_count:verify.length,verify_state:'merged_new_records',merge_added_count:safeRecords.length,merge_file:pendingGenryoMerge.fileName,pre_merge_backup_filename:beforeName,page:location.pathname,origin:location.origin});
+    updateAllBackupMeta({last_process_merge_at:at,last_process_merge_file:pendingGenryoMerge.fileName,last_process_merge_process:'genryo',last_process_merge_added_count:safeRecords.length,last_pre_process_merge_backup_filename:beforeName});
+    document.getElementById('process-merge-status').textContent=`適用前バックアップ ${beforeName} を作成し、原料処理の新規記録 ${safeRecords.length}件を追加しました。現在 ${verify.length}件です。`;
+    refreshDeviceStatus();
+    renderGenryoMergePreview(pendingGenryoMerge.payload,pendingGenryoMerge.fileName);
+  }catch(err){alert('工程別JSONを集約できませんでした。'+(err&&err.message?'\n'+err.message:''));document.getElementById('process-merge-status').textContent='集約できませんでした。'+(err&&err.message?' '+err.message:'');}
+}
 
 function saveCurrentBreweryYear(){const el=document.getElementById('current-brewery-year');const c=window.WorkRecordBreweryYear?WorkRecordBreweryYear.setCurrent(el.value):el.value;document.getElementById('current-brewery-year-status').textContent='現在年度を '+(window.WorkRecordBreweryYear?WorkRecordBreweryYear.parts(c).label:c)+' に設定しました。';}
 document.addEventListener('DOMContentLoaded',()=>{const by=document.getElementById('current-brewery-year');if(by&&window.WorkRecordBreweryYear)by.value=WorkRecordBreweryYear.current();refreshDeviceStatus();if(window.__workRecordBindFolds)window.__workRecordBindFolds();});
