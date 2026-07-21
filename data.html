@@ -116,6 +116,10 @@ const ALL_BACKUP_META_KEY='workRecordAllBackupMetaV1';
 const GENRYO_STORAGE_META_KEY='workRecordGenryoStorageMetaV1';
 const GENRYO_STORAGE_PROBE_KEY='workRecordGenryoStorageProbeV1';
 const PROCESS_TRANSFER_SCHEMA='workRecordProcessTransferV1';
+const GENRYO_RECORD_SCHEMA='work-record.genryo.v1';
+// v01が受け入れていた保存箱schemaも、既存互換を壊さないため当面許可する。
+const GENRYO_RECORD_SCHEMA_V01_COMPAT='workRecordGenryoRecordsV1';
+const ACCEPTED_GENRYO_RECORD_SCHEMAS=new Set([GENRYO_RECORD_SCHEMA,GENRYO_RECORD_SCHEMA_V01_COMPAT]);
 const STORE_DEFS=[
   {id:'genryo',label:'原料処理',schema:'workRecordGenryoRecordsV1',storageKey:'workRecordGenryoRecordsV1',status:'implemented'},
   {id:'koji',label:'麹製造',schema:'workRecordKojiRecordsV1',storageKey:'workRecordKojiRecordsV1',status:'implemented'},
@@ -253,7 +257,7 @@ function classifyGenryoIncoming(record,existingRecords,duplicateIncomingIds){
   const id=normalizedText(record?.record_id);
   const process=normalizedText(record?.process);
   if(process&&process!=='genryo')return {category:'conflict',reason:'レコードの工程区分が原料処理と一致しません。'};
-  if(record?.schema&&record.schema!=='workRecordGenryoRecordsV1')return {category:'conflict',reason:'未知または不一致のレコードschemaです。'};
+  if(record?.schema&&!ACCEPTED_GENRYO_RECORD_SCHEMAS.has(record.schema))return {category:'conflict',reason:'未知または不一致のレコードschemaです。'};
   if(id&&duplicateIncomingIds.has(id))return {category:'conflict',reason:'同じ工程別JSON内でrecord_idが重複しています。'};
   const fingerprint=genryoBusinessFingerprint(record);
   const sameId=id?existingRecords.find(item=>normalizedText(item?.record_id)===id):null;
